@@ -52,6 +52,19 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
+    'GBPJPY': {
+        'oanda': 'GBP_JPY',
+        'units_total':   10_000,
+        'units_partial':  5_000,
+        'pip_size':      0.01,    # JPY pair — 1 pip = 0.01
+        'filter_cfg': {
+            'min_range_threshold': 0.86,  # 86 pips in JPY terms — top quartile only
+            'use_session':  True,
+            'active_sessions': ('london', 'newyork'),
+            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+        },
+    },
     # GOLD: disabled — negative expectancy (−$7.41/trade) across all range
     # buckets on 1-year wick-based backtest. Mean-reversion does not appear
     # reliable for XAU/USD with 4H pivot levels. Re-evaluate with longer data

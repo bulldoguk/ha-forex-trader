@@ -11,17 +11,17 @@ export NOTIFY_EMAIL=$(bashio::config 'notify_email')
 # ── Per-instrument toggles and sizing ─────────────────────────────────────────
 export GBPUSD_ENABLED=$(bashio::config 'gbpusd_enabled')
 export EURUSD_ENABLED=$(bashio::config 'eurusd_enabled')
-export GOLD_ENABLED=$(bashio::config 'gold_enabled')
+export GBPJPY_ENABLED=$(bashio::config 'gbpjpy_enabled')
 export GBPUSD_UNITS=$(bashio::config 'gbpusd_units')
 export EURUSD_UNITS=$(bashio::config 'eurusd_units')
-export GOLD_UNITS=$(bashio::config 'gold_units')
+export GBPJPY_UNITS=$(bashio::config 'gbpjpy_units')
 
 # ── Persistent storage (survives container restarts) ──────────────────────────
 export LOG_DIR=/share/forex_trader/logs
 mkdir -p "${LOG_DIR}"
 
 bashio::log.info "Starting Forex Trader — OANDA ${OANDA_ENV}"
-bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GOLD=${GOLD_ENABLED}"
+bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GBPJPY=${GBPJPY_ENABLED}"
 
 # Force Python to flush stdout immediately — without this, print() output
 # is buffered in Docker and never appears in the HA log viewer

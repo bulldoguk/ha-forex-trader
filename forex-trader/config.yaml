@@ -1,5 +1,5 @@
 name: "Forex Trader"
-version: "1.1.0"
+version: "1.2.0"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, Gold"
 url: "https://github.com/bulldoguk/ha-forex-trader"
@@ -23,10 +23,10 @@ options:
   notify_email: ""
   gbpusd_enabled: true
   eurusd_enabled: true
-  gold_enabled: true
+  gbpjpy_enabled: true
   gbpusd_units: 10000
   eurusd_units: 10000
-  gold_units: 2
+  gbpjpy_units: 10000
 
 schema:
   oanda_token: str
@@ -37,10 +37,10 @@ schema:
   notify_email: str
   gbpusd_enabled: bool
   eurusd_enabled: bool
-  gold_enabled: bool
+  gbpjpy_enabled: bool
   gbpusd_units: int
   eurusd_units: int
-  gold_units: int
+  gbpjpy_units: int
 
 map:
   - share:rw

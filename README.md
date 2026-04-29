@@ -1,6 +1,6 @@
 # Forex Trader — Home Assistant Add-on
 
-Automated pivot mean-reversion trading daemon for GBP/USD and EUR/USD.
+Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, and GBP/JPY.
 Runs as a Home Assistant add-on with a built-in status dashboard.
 
 ## Installation
@@ -22,12 +22,14 @@ Runs as a Home Assistant add-on with a built-in status dashboard.
 | `notify_email` | Email address to receive notifications |
 | `gbpusd_enabled` | Trade GBP/USD (default: true) |
 | `eurusd_enabled` | Trade EUR/USD (default: true) |
+| `gbpjpy_enabled` | Trade GBP/JPY (default: true) |
 | `gbpusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `eurusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
+| `gbpjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
 
-> **Note:** Gold (XAU/USD) is disabled in v1.1.0 — backtesting showed negative
-> expectancy across all range buckets. It will be re-evaluated with a different
-> entry model before being re-enabled.
+> **Note:** Gold (XAU/USD) remains disabled — backtesting showed negative
+> expectancy across all range buckets. USD/JPY was also tested and rejected
+> (session filter worsened results). Neither fits the mean-reversion model.
 
 ## Dashboard
 
@@ -96,9 +98,10 @@ Based on 1-year backtest (OANDA data, wick-based detection, all filters applied)
 |---|---|---|---|
 | GBP/USD | 60 | 8 | ~8 |
 | EUR/USD | 58 | 12 | ~12 |
-| **Total** | **118** | **~20** | **~20** |
+| GBP/JPY | 68 | ~14 | ~13 |
+| **Total** | **186** | **~34** | **~33** |
 
-Approximately **one to two trades per month** across both instruments.
+Approximately **two to three trades per month** across all instruments.
 
 ### Backtest results (1 year, filtered)
 
@@ -106,17 +109,21 @@ Approximately **one to two trades per month** across both instruments.
 |---|---|---|---|---|---|
 | GBP/USD | 8 | **62.5%** | +83 pips | −50 pips | +33 pips/trade |
 | EUR/USD | 12 | 50.0% | +61 pips | −56 pips | +3 pips/trade |
+| GBP/JPY | 13 | **54.0%** | +96 pips | −53 pips | +34 pips/trade |
+
+*GBP/JPY pip value ≈ $0.70/pip at 0.1 lot (USD/JPY rate dependent)*
 
 ### Expected annual P&L by position size
 
-| Position size | GBP/USD | EUR/USD | **Total** | Recommended account |
-|---|---|---|---|---|
-| 0.1 lot | ~$264 | ~$36 | **~$300** | $5,000 |
-| 0.5 lot | ~$1,320 | ~$180 | **~$1,500** | $25,000 |
-| 1.0 lot | ~$2,640 | ~$360 | **~$3,000** | $50,000 |
+| Position size | GBP/USD | EUR/USD | GBP/JPY | **Total** | Recommended account |
+|---|---|---|---|---|---|
+| 0.1 lot | ~$264 | ~$36 | ~$309 | **~$609** | $5,000 |
+| 0.5 lot | ~$1,320 | ~$180 | ~$1,545 | **~$3,045** | $25,000 |
+| 1.0 lot | ~$2,640 | ~$360 | ~$3,090 | **~$6,090** | $50,000 |
 
-Target return is approximately **6% per year** at current parameters.
-This will improve as filter tuning matures with more live trade data.
+Target return is approximately **12% per year** at current parameters.
+
+> GBP/JPY pip values are approximate (depend on live USD/JPY rate).
 
 ### Scaling milestones
 
@@ -143,6 +150,7 @@ conclusions about strategy performance.
 
 | Version | Change |
 |---|---|
+| v1.2.0 | Added GBP/JPY (86-pip min range, 54% win rate), replaced Gold options |
 | v1.1.0 | Wick-based entry detection, 41-pip min range, Gold disabled |
 | v1.0.2 | Unbuffered stdout, clearer scan cycle logging |
 | v1.0.1 | Fixed sys.path priority bug (trader config vs backtester config) |
