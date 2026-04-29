@@ -181,16 +181,25 @@ def run():
             wait_until = next_close + timedelta(seconds=config.SCAN_DELAY_SECS)
             statuses   = {k: state[k]['status'] for k in config.INSTRUMENTS}
             print(f'  [{datetime.now(timezone.utc):%H:%M:%S UTC}] '
-                  f'Next scan: {wait_until:%H:%M:%S}  |  '
-                  + '  '.join(f'{k}:{v}' for k, v in statuses.items()))
+                  f'Sleeping until {wait_until:%H:%M:%S UTC}  |  '
+                  + '  '.join(f'{k}:{v}' for k, v in statuses.items()),
+                  flush=True)
             _sleep_until(wait_until)
 
+            # ── Scan all instruments ──────────────────────────────────────────
+            now_str = datetime.now(timezone.utc).strftime('%H:%M:%S UTC')
+            print(f'  [{now_str}] Scanning...', flush=True)
             for key in config.INSTRUMENTS:
                 st_key = state[key]['status']
                 if st_key == 'idle':
                     state = _handle_idle(state, key)
                 elif st_key == 'pending':
                     state = _handle_pending(state, key)
+            print(f'  [{now_str}] Scan complete — '
+                  + '  '.join(f'{k}:{state[k]["status"]}' for k in config.INSTRUMENTS),
+                  flush=True)
+            logger.log_event('scan_complete',
+                             statuses={k: state[k]['status'] for k in state})
 
         except KeyboardInterrupt:
             print('\nDaemon stopped.')

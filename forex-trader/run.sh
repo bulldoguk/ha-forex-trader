@@ -23,4 +23,8 @@ mkdir -p "${LOG_DIR}"
 bashio::log.info "Starting Forex Trader — OANDA ${OANDA_ENV}"
 bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GOLD=${GOLD_ENABLED}"
 
+# Force Python to flush stdout immediately — without this, print() output
+# is buffered in Docker and never appears in the HA log viewer
+export PYTHONUNBUFFERED=1
+
 exec python3 /app/entrypoint.py

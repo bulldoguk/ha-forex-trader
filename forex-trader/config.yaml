@@ -1,5 +1,5 @@
 name: "Forex Trader"
-version: "1.0.1"
+version: "1.0.2"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, Gold"
 url: "https://github.com/bulldoguk/ha-forex-trader"
