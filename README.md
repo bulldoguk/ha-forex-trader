@@ -7,7 +7,7 @@ Runs as a Home Assistant add-on with a built-in status dashboard.
 
 1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**
 2. Click the three-dot menu (⋮) → **Repositories**
-3. Add: `https://github.com/garymyhmbiz/ha-forex-trader`
+3. Add: `https://github.com/bulldoguk/ha-forex-trader`
 4. Find **Forex Trader** in the store and click **Install**
 
 ## Configuration

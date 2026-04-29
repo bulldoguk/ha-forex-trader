@@ -6,8 +6,8 @@ then runs the trading daemon in the main thread.
 import sys, os, threading
 
 # Wire up paths before importing anything else
-sys.path.insert(0, '/app/trader')
 sys.path.insert(0, '/app/backtester')
+sys.path.insert(0, '/app/trader')    # trader first — its config.py takes priority
 
 # Patch config to read env-var overrides for instrument toggles/sizing
 import config as _cfg

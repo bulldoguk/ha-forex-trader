@@ -2,7 +2,7 @@ name: "Forex Trader"
 version: "1.0.0"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, Gold"
-url: "https://github.com/garymyhmbiz/ha-forex-trader"
+url: "https://github.com/bulldoguk/ha-forex-trader"
 arch:
   - aarch64
   - amd64

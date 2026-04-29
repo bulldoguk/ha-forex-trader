@@ -7,8 +7,8 @@ import sys, os, json
 from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template_string, request
 
-sys.path.insert(0, '/app/trader')
 sys.path.insert(0, '/app/backtester')
+sys.path.insert(0, '/app/trader')
 
 import config
 import state as _state
