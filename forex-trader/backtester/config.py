@@ -34,11 +34,10 @@ LOOKBACK_DAYS = 59
 
 FILTER_CFG = {
     # Minimum R8/S0 → P4 distance in price units (0 = disabled)
-    # Derived from 1-year GBPUSD backtest: win rate flips positive above 95 pips (0.0095)
-    # Note: this threshold is meaningful for 4-decimal pairs (GBP/USD, EUR/USD).
-    # JPY pairs (~0.95) and Gold/Indices have much larger ranges so this is
-    # effectively disabled for them — per-instrument tuning is a future task.
-    'min_range_threshold': 0.0095,
+    # Recalibrated from wick-based detection on real (non-boundary) signals:
+    # win rate flips strongly positive above 41 pips (0.0041).
+    # Medium range (28-41 pips) is the worst bucket — avoid.
+    'min_range_threshold': 0.0041,
 
     # Only enter during London and/or New York sessions (UTC)
     # London 08-17 UTC, New York 13-22 UTC — combined window 08-22 UTC

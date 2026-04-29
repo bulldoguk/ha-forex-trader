@@ -32,7 +32,7 @@ INSTRUMENTS = {
         'units_partial':  5_000,
         'pip_size':      0.0001,
         'filter_cfg': {
-            'min_range_threshold': 0.0095,   # 95 pips minimum
+            'min_range_threshold': 0.0041,   # 41 pips — recalibrated from wick-based detection
             'use_session':  True,
             'active_sessions': ('london', 'newyork'),
             'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
@@ -45,25 +45,24 @@ INSTRUMENTS = {
         'units_partial':  5_000,
         'pip_size':      0.0001,
         'filter_cfg': {
-            'min_range_threshold': 0.0095,   # same as GBPUSD
+            'min_range_threshold': 0.0041,   # same as GBPUSD — recalibrated
             'use_session':  True,
             'active_sessions': ('london', 'newyork'),
             'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
-    'GOLD': {
-        'oanda': 'XAU_USD',
-        'units_total':   2,      # 2 oz → $2/point
-        'units_partial': 1,      # close 1 oz at TP1
-        'pip_size':      1.0,    # report in whole dollar points
-        'filter_cfg': {
-            'max_range_threshold': 80.0,     # avoid high-volatility sessions (inverted pattern)
-            'use_session':  False,            # Gold trades 23h — don't restrict to London/NY
-            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
-            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
-        },
-    },
+    # GOLD: disabled — negative expectancy (−$7.41/trade) across all range
+    # buckets on 1-year wick-based backtest. Mean-reversion does not appear
+    # reliable for XAU/USD with 4H pivot levels. Re-evaluate with longer data
+    # or a different entry model before re-enabling.
+    # 'GOLD': {
+    #     'oanda': 'XAU_USD',
+    #     'units_total':   2,
+    #     'units_partial': 1,
+    #     'pip_size':      1.0,
+    #     'filter_cfg': { ... },
+    # },
 }
 
 # ── Timing ───────────────────────────────────────────────────────────────────
