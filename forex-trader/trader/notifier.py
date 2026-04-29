@@ -28,6 +28,17 @@ def _tag(instrument_key: str) -> str:
     return f'[{instrument_key}]'
 
 
+def startup(active_instruments: list[str]):
+    _send(
+        '[TRADER] Forex Trader started',
+        f"""Forex Trader add-on has started successfully.
+
+Active instruments: {', '.join(active_instruments) if active_instruments else 'none'}
+
+{_now()}"""
+    )
+
+
 def signal_detected(instrument_key: str, direction: str, entry: float,
                     tp1: float, tp2: float, sl: float, entry_range: float):
     pip_unit = 'pts' if instrument_key == 'GOLD' else 'pips'

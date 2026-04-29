@@ -27,9 +27,11 @@ _apply_env_overrides()
 
 import webapp
 import trader
+import notifier
 
 if __name__ == '__main__':
     web_thread = threading.Thread(target=webapp.run_server, daemon=True, name='webapp')
     web_thread.start()
     print('[entrypoint] Web UI started on port 5000')
+    notifier.startup(list(_cfg.INSTRUMENTS.keys()))
     trader.run()
