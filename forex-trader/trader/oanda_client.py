@@ -1,5 +1,6 @@
 """OANDA v20 REST API wrapper — order placement, position management, market data."""
 
+import time
 import requests
 import pandas as pd
 from datetime import datetime, timezone
@@ -11,23 +12,32 @@ _HEADERS = {
     'Content-Type':  'application/json',
 }
 
+_RETRY_STATUSES = {500, 502, 503, 504}
+_RETRY_DELAYS   = [5, 15, 30]   # seconds between attempts
 
-def _get(path: str, params: dict = None) -> dict:
-    r = requests.get(f'{_BASE}{path}', headers=_HEADERS, params=params, timeout=15)
+
+def _request(method: str, path: str, **kwargs) -> dict:
+    url = f'{_BASE}{path}'
+    for attempt, delay in enumerate([0] + _RETRY_DELAYS):
+        if delay:
+            time.sleep(delay)
+        r = getattr(requests, method)(url, headers=_HEADERS, timeout=15, **kwargs)
+        if r.status_code not in _RETRY_STATUSES:
+            break
     r.raise_for_status()
     return r.json()
+
+
+def _get(path: str, params: dict = None) -> dict:
+    return _request('get', path, params=params)
 
 
 def _post(path: str, body: dict) -> dict:
-    r = requests.post(f'{_BASE}{path}', headers=_HEADERS, json=body, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    return _request('post', path, json=body)
 
 
 def _put(path: str, body: dict) -> dict:
-    r = requests.put(f'{_BASE}{path}', headers=_HEADERS, json=body, timeout=15)
-    r.raise_for_status()
-    return r.json()
+    return _request('put', path, json=body)
 
 
 # ── Market data ──────────────────────────────────────────────────────────────
@@ -99,12 +109,7 @@ def place_limit_order(direction: str, price: float, units: int,
 
 
 def cancel_order(order_id: str) -> dict:
-    r = requests.put(
-        f'{_BASE}/v3/accounts/{config.OANDA_ACCOUNT}/orders/{order_id}/cancel',
-        headers=_HEADERS, timeout=15,
-    )
-    r.raise_for_status()
-    return r.json()
+    return _put(f'/v3/accounts/{config.OANDA_ACCOUNT}/orders/{order_id}/cancel', {})
 
 
 def get_pending_orders(instrument: str = None) -> list[dict]:
