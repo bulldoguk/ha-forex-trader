@@ -44,6 +44,15 @@ FILTER_CFG_OVERRIDES = {
         'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
         'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
     },
+    'AUDJPY': {
+        # min_range_threshold=0: calibrate from range-bucket analysis after backtest.
+        # AUD/JPY typical daily range 50-80 pips; expect flip somewhere in that band.
+        'min_range_threshold': 0,
+        'use_session':  True,
+        'active_sessions': ('tokyo', 'london', 'newyork'),
+        'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+        'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+    },
     'EURJPY': {
         # Calibrated from range-bucket analysis: win rate flips at 0.50 (50 pips).
         # Wide bucket (0.50-0.58): 67% win rate. Very wide (>0.58): 43%, +0.13 avg.

@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.5.1 (2026-05-03)
+
+### Research (backtester only — no live changes)
+- **AUD/JPY** tested (2yr, 4H pivots): near-zero expectancy (−0.030 pts/trade),
+  unstable range-bucket pattern across periods. Not added to live scanner.
+- **GBP/USD weekly pivots** tested (2yr, R2 entry): 16% win rate, −0.010 pts/trade.
+  Weekly extensions are trend continuations, not mean-reversion setups. Not pursued.
+- Added `weekly` granularity support to OANDA fetcher for future pair testing.
+- Added `AUD/JPY` to OANDA instrument map (backtester only).
+
+---
+
 ## v1.5.0 (2026-05-03)
 
 ### Added

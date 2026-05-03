@@ -30,6 +30,7 @@ OANDA_INSTRUMENTS = {
     'EURUSD': 'EUR_USD',
     'USDJPY': 'USD_JPY',
     'EURJPY': 'EUR_JPY',
+    'AUDJPY': 'AUD_JPY',
     'GOLD':   'XAU_USD',
     'SPX':    'SPX500_USD',
     'FTSE':   'UK100_GBP',
@@ -41,6 +42,7 @@ _GRAN = {
     '1h':    'H1',
     '4h':    'H4',
     'daily': 'D',
+    'weekly': 'W',
 }
 
 _MAX_CANDLES = 5000   # OANDA hard limit per request
