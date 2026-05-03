@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.2 (2026-05-03)
+
+### Added
+- **USD/CAD** as a 6th live instrument using **4H pivot levels**
+  - 2-year backtest: 28 filtered signals, 60.7% win rate, +0.00323 pts/trade expectancy, max DD -0.011
+  - **Notch filter**: rejects 40–51 pip range (dead zone, 29% win unfiltered); keeps tight/medium (<40 pips) and very wide (>51 pips) which both carry positive edge
+  - Added `notch_range_lo` / `notch_range_hi` filter support to `filters.py`
+
+### Research (backtester only — no live changes)
+- **USD/CHF** tested (2yr, 4H pivots): best bucket 38% win, +0.00104 avg. Weak edge across all range buckets — tighter-ranging safe-haven pair, strategy doesn't fit. Rejected.
+- **USD/CAD weekly pivots** tested: 0% win rate across all 22 signals. Weekly extensions on CAD trend rather than revert. Not pursued.
+
+---
+
 ## v1.5.1 (2026-05-03)
 
 ### Research (backtester only — no live changes)

@@ -31,6 +31,8 @@ OANDA_INSTRUMENTS = {
     'USDJPY': 'USD_JPY',
     'EURJPY': 'EUR_JPY',
     'AUDJPY': 'AUD_JPY',
+    'USDCHF': 'USD_CHF',
+    'USDCAD': 'USD_CAD',
     'GOLD':   'XAU_USD',
     'SPX':    'SPX500_USD',
     'FTSE':   'UK100_GBP',

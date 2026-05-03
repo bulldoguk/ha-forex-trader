@@ -32,6 +32,11 @@ def max_range(entry_range: float, threshold: float) -> bool:
     return entry_range <= threshold
 
 
+def notch_range(entry_range: float, lo: float, hi: float) -> bool:
+    """Reject signals whose range falls in the dead zone [lo, hi]."""
+    return not (lo <= entry_range <= hi)
+
+
 # ---------------------------------------------------------------------------
 # 2. Session filter
 # ---------------------------------------------------------------------------
@@ -145,6 +150,10 @@ def apply_all(df: pd.DataFrame, signal_idx: int, direction: str,
     if cfg.get('max_range_threshold', 0) > 0:
         if not max_range(entry_range, cfg['max_range_threshold']):
             failed.append('max_range')
+
+    if cfg.get('notch_range_lo') and cfg.get('notch_range_hi'):
+        if not notch_range(entry_range, cfg['notch_range_lo'], cfg['notch_range_hi']):
+            failed.append('notch_range')
 
     if cfg.get('use_session') is True:
         if not session(ts, cfg.get('active_sessions', ('london', 'newyork'))):

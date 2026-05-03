@@ -79,6 +79,22 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
+    'USDCAD': {
+        'oanda': 'USD_CAD',
+        'units_total':   10_000,
+        'units_partial':  5_000,
+        'pip_size':      0.0001,
+        'filter_cfg': {
+            # Notch filter: skip 40-51 pip dead zone (29% win, -0.00109 avg unfiltered).
+            # Tight/medium (<40 pips) and very wide (>51 pips) both carry positive edge.
+            'notch_range_lo': 0.0040,
+            'notch_range_hi': 0.0051,
+            'use_session':  True,
+            'active_sessions': ('london', 'newyork'),
+            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+        },
+    },
     'EURJPY': {
         'oanda': 'EUR_JPY',
         'units_total':   10_000,

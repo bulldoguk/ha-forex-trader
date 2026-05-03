@@ -21,6 +21,8 @@ DEFAULT_PIP = {
     'GBPJPY': 0.01,
     'GBPEUR': 0.0001,
     'USDJPY': 0.01,
+    'USDCHF': 0.0001,
+    'USDCAD': 0.0001,
     'GOLD':   0.10,
     'SPX':    1.0,
     'FTSE':   1.0,
@@ -59,6 +61,16 @@ FILTER_CFG_OVERRIDES = {
         'min_range_threshold': 0.50,
         'use_session':  True,
         'active_sessions': ('tokyo', 'london', 'newyork'),
+        'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+        'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+    },
+    'USDCAD': {
+        # Notch filter: skip the 40-51 pip dead zone (29% win, -0.00109 avg in unfiltered).
+        # Tight/medium (<40 pips) and very wide (>51 pips) both have positive edge.
+        'notch_range_lo': 0.0040,
+        'notch_range_hi': 0.0051,
+        'use_session':  True,
+        'active_sessions': ('london', 'newyork'),
         'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
         'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
     },
