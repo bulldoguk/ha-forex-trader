@@ -12,18 +12,33 @@ _HEADERS = {
     'Content-Type':  'application/json',
 }
 
-_RETRY_STATUSES = {500, 502, 503, 504}
-_RETRY_DELAYS   = [5, 15, 30]   # seconds between attempts
+_RETRY_STATUSES    = {500, 502, 503, 504}
+_RETRY_EXCEPTIONS  = (
+    requests.exceptions.SSLError,
+    requests.exceptions.ReadTimeout,
+    requests.exceptions.ConnectionError,
+)
+_RETRY_DELAYS = [5, 15, 30]   # seconds between attempts
 
 
 def _request(method: str, path: str, **kwargs) -> dict:
     url = f'{_BASE}{path}'
-    for attempt, delay in enumerate([0] + _RETRY_DELAYS):
+    last_exc = None
+    for delay in [0] + _RETRY_DELAYS:
         if delay:
             time.sleep(delay)
-        r = getattr(requests, method)(url, headers=_HEADERS, timeout=15, **kwargs)
+        try:
+            r = getattr(requests, method)(url, headers=_HEADERS, timeout=15, **kwargs)
+        except _RETRY_EXCEPTIONS:
+            last_exc = True
+            continue
         if r.status_code not in _RETRY_STATUSES:
             break
+    else:
+        if last_exc:
+            raise requests.exceptions.ConnectionError(
+                f'OANDA request failed after retries: {method.upper()} {path}'
+            )
     r.raise_for_status()
     return r.json()
 
