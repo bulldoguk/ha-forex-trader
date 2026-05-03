@@ -42,58 +42,102 @@ def latest_signal(instrument_key: str):
     pivot_shifted = pivot_df.shift(1).dropna()
     enriched      = pivot_calculator.assign_to_m15(m15_df, pivot_shifted, pivot_tf=pivot_tf)
 
-    rows = enriched.reset_index()
-    n    = len(rows)
+    rows   = enriched.reset_index()
+    n      = len(rows)
     if n < 2:
         return None
 
     # Check the most recently CLOSED bar (second to last — last may be incomplete)
-    curr = rows.iloc[n - 2]
-    nxt  = rows.iloc[n - 1]
+    curr   = rows.iloc[n - 2]
+    use_r2 = instr_cfg.get('entry_level') == 'R2'
 
-    # ── Short: wick to R8, close back below ──────────────────────────────────
-    if curr['high'] >= curr['R4'] and curr['close'] < curr['R4']:
-        r4  = curr['R4']
-        r3  = curr['R3']
-        r2  = curr['R2']
-        p   = curr['P']
-        entry_range = r4 - p
-        sl          = r4 + (r4 - r3)
-        sl_after    = r2 + (r2 - curr['R1'])
+    if use_r2:
+        # ── Short: wick to R2 (R6 in strategy naming), close back below ──────
+        if curr['high'] >= curr['R2'] and curr['close'] < curr['R2']:
+            entry = curr['R2']
+            tp1   = curr['R1']
+            p     = curr['P']
+            entry_range = entry - p
+            sl          = entry + (entry - tp1)
+            sl_after    = tp1   + (tp1  - p)
 
-        passed, _ = _filters.apply_all(
-            enriched, n - 2, 'short', r4, entry_range,
-            curr['timestamp'], filter_cfg,
-        )
-        if passed:
-            return Signal(
-                timestamp=curr['timestamp'], direction='short',
-                entry_price=r4, r4=r4, r2=r2, p=p,
-                s2=curr['S2'], s4=curr['S4'],
-                sl_initial=sl, sl_after_tp1=sl_after,
+            passed, _ = _filters.apply_all(
+                enriched, n - 2, 'short', entry, entry_range,
+                curr['timestamp'], filter_cfg,
             )
+            if passed:
+                return Signal(
+                    timestamp=curr['timestamp'], direction='short',
+                    entry_price=entry, r4=entry, r2=tp1, p=p,
+                    s2=curr['S1'], s4=curr['S2'],
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                )
 
-    # ── Long: wick to S0, close back above ───────────────────────────────────
-    elif curr['low'] <= curr['S4'] and curr['close'] > curr['S4']:
-        s4  = curr['S4']
-        s3  = curr['S3']
-        s2  = curr['S2']
-        p   = curr['P']
-        entry_range = p - s4
-        sl          = s4 - (s3 - s4)
-        sl_after    = s2 - (curr['S1'] - s2)
+        # ── Long: wick to S2, close back above ───────────────────────────────
+        elif curr['low'] <= curr['S2'] and curr['close'] > curr['S2']:
+            entry = curr['S2']
+            tp1   = curr['S1']
+            p     = curr['P']
+            entry_range = p - entry
+            sl          = entry - (tp1 - entry)
+            sl_after    = tp1   - (p   - tp1)
 
-        passed, _ = _filters.apply_all(
-            enriched, n - 2, 'long', s4, entry_range,
-            curr['timestamp'], filter_cfg,
-        )
-        if passed:
-            return Signal(
-                timestamp=curr['timestamp'], direction='long',
-                entry_price=s4, r4=curr['R4'], r2=curr['R2'], p=p,
-                s2=s2, s4=s4,
-                sl_initial=sl, sl_after_tp1=sl_after,
+            passed, _ = _filters.apply_all(
+                enriched, n - 2, 'long', entry, entry_range,
+                curr['timestamp'], filter_cfg,
             )
+            if passed:
+                return Signal(
+                    timestamp=curr['timestamp'], direction='long',
+                    entry_price=entry, r4=curr['R2'], r2=curr['R1'], p=p,
+                    s2=tp1, s4=entry,
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                )
+
+    else:
+        # ── Short: wick to R8 (R4), close back below ─────────────────────────
+        if curr['high'] >= curr['R4'] and curr['close'] < curr['R4']:
+            r4  = curr['R4']
+            r3  = curr['R3']
+            r2  = curr['R2']
+            p   = curr['P']
+            entry_range = r4 - p
+            sl          = r4 + (r4 - r3)
+            sl_after    = r2 + (r2 - curr['R1'])
+
+            passed, _ = _filters.apply_all(
+                enriched, n - 2, 'short', r4, entry_range,
+                curr['timestamp'], filter_cfg,
+            )
+            if passed:
+                return Signal(
+                    timestamp=curr['timestamp'], direction='short',
+                    entry_price=r4, r4=r4, r2=r2, p=p,
+                    s2=curr['S2'], s4=curr['S4'],
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                )
+
+        # ── Long: wick to S0 (S4), close back above ──────────────────────────
+        elif curr['low'] <= curr['S4'] and curr['close'] > curr['S4']:
+            s4  = curr['S4']
+            s3  = curr['S3']
+            s2  = curr['S2']
+            p   = curr['P']
+            entry_range = p - s4
+            sl          = s4 - (s3 - s4)
+            sl_after    = s2 - (curr['S1'] - s2)
+
+            passed, _ = _filters.apply_all(
+                enriched, n - 2, 'long', s4, entry_range,
+                curr['timestamp'], filter_cfg,
+            )
+            if passed:
+                return Signal(
+                    timestamp=curr['timestamp'], direction='long',
+                    entry_price=s4, r4=curr['R4'], r2=curr['R2'], p=p,
+                    s2=s2, s4=s4,
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                )
 
     return None
 

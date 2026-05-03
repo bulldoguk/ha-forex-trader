@@ -22,12 +22,13 @@ from oanda_fetcher import OANDA_INSTRUMENTS
 # Instruments that use a non-default pivot timeframe
 _PIVOT_TF_OVERRIDES = {
     'USDJPY': 'daily',
+    'GOLD':   'daily',
 }
 
 
 def run(name: str, days: int = 365, plot: bool = False,
-        use_yf: bool = False) -> pd.DataFrame:
-    pivot_tf   = _PIVOT_TF_OVERRIDES.get(name, '4h')
+        use_yf: bool = False, pivot_tf: str = None) -> pd.DataFrame:
+    pivot_tf = pivot_tf or _PIVOT_TF_OVERRIDES.get(name, '4h')
     filter_cfg = FILTER_CFG_OVERRIDES.get(name)   # None → use module default
 
     print(f"\nFetching {name} ({days}d history, pivot={pivot_tf})...")
@@ -51,7 +52,10 @@ def run(name: str, days: int = 365, plot: bool = False,
     enriched = pivot_calculator.assign_to_m15(m15, pivot_df, pivot_tf=pivot_tf)
 
     if filter_cfg is not None:
-        all_sigs = signal_detector.detect(enriched, filter_cfg={})
+        # Strip filter conditions for the raw baseline but keep structural options
+        # (e.g. entry_level) so both scans use the same entry mechanism.
+        raw_cfg  = {k: v for k, v in filter_cfg.items() if k == 'entry_level'}
+        all_sigs = signal_detector.detect(enriched, filter_cfg=raw_cfg)
         filtered = signal_detector.detect(enriched, filter_cfg=filter_cfg)
         print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
     else:
@@ -80,9 +84,12 @@ def main():
     use_yf = '--yf'    in sys.argv
 
     days = 365
+    pivot_tf_override = None
     for arg in sys.argv[1:]:
         if arg.startswith('--days='):
             days = int(arg.split('=')[1])
+        elif arg.startswith('--pivot-tf='):
+            pivot_tf_override = arg.split('=')[1]
 
     available = list(OANDA_INSTRUMENTS.keys())
     targets   = [a.upper() for a in args if a.upper() in available] or available
@@ -93,7 +100,8 @@ def main():
 
     all_results = []
     for name in targets:
-        df = run(name, days=days, plot=plot, use_yf=use_yf)
+        df = run(name, days=days, plot=plot, use_yf=use_yf,
+                 pivot_tf=pivot_tf_override)
         if not df.empty:
             all_results.append(df)
 

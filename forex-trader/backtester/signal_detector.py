@@ -61,54 +61,99 @@ def detect(df: pd.DataFrame, filter_cfg: dict = None) -> list[Signal]:
 
     signals = []
     rows    = df.reset_index()
+    use_r2  = filter_cfg.get('entry_level') == 'R2'
 
     for i in range(1, len(rows) - 1):
         curr = rows.iloc[i]
         nxt  = rows.iloc[i + 1]
 
-        # --- Short: wick to R8, close back below ---
-        if curr['high'] >= curr['R4'] and curr['close'] < curr['R4']:
-            r4  = curr['R4']
-            r3  = curr['R3']
-            r2  = curr['R2']
-            p   = curr['P']
-            entry_range = r4 - p
-            sl          = r4 + (r4 - r3)
-            sl_after    = r2 + (r2 - curr['R1'])
+        if use_r2:
+            # --- Short: wick to R2 (R6 in strategy naming), close back below ---
+            if curr['high'] >= curr['R2'] and curr['close'] < curr['R2']:
+                entry = curr['R2']
+                tp1   = curr['R1']
+                p     = curr['P']
+                entry_range = entry - p
+                sl          = entry + (entry - tp1)
+                sl_after    = tp1   + (tp1  - p)
 
-            passed, failed = filters.apply_all(
-                df, i, 'short', r4, entry_range, curr['timestamp'], filter_cfg,
-            )
-            signals.append(Signal(
-                timestamp=nxt['timestamp'], direction='short',
-                entry_price=r4, r4=r4, r2=r2, p=p,
-                s2=curr['S2'], s4=curr['S4'],
-                sl_initial=sl, sl_after_tp1=sl_after,
-                filters_passed=[] if failed else list(filter_cfg.keys()),
-                filters_failed=failed,
-            ))
+                passed, failed = filters.apply_all(
+                    df, i, 'short', entry, entry_range, curr['timestamp'], filter_cfg,
+                )
+                signals.append(Signal(
+                    timestamp=nxt['timestamp'], direction='short',
+                    entry_price=entry, r4=entry, r2=tp1, p=p,
+                    s2=curr['S1'], s4=curr['S2'],
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                    filters_passed=[] if failed else list(filter_cfg.keys()),
+                    filters_failed=failed,
+                ))
 
-        # --- Long: wick to S0, close back above ---
-        elif curr['low'] <= curr['S4'] and curr['close'] > curr['S4']:
-            s4  = curr['S4']
-            s3  = curr['S3']
-            s2  = curr['S2']
-            p   = curr['P']
-            entry_range = p - s4
-            sl          = s4 - (s3 - s4)
-            sl_after    = s2 - (curr['S1'] - s2)
+            # --- Long: wick to S2, close back above ---
+            elif curr['low'] <= curr['S2'] and curr['close'] > curr['S2']:
+                entry = curr['S2']
+                tp1   = curr['S1']
+                p     = curr['P']
+                entry_range = p - entry
+                sl          = entry - (tp1 - entry)
+                sl_after    = tp1   - (p   - tp1)
 
-            passed, failed = filters.apply_all(
-                df, i, 'long', s4, entry_range, curr['timestamp'], filter_cfg,
-            )
-            signals.append(Signal(
-                timestamp=nxt['timestamp'], direction='long',
-                entry_price=s4, r4=curr['R4'], r2=curr['R2'], p=p,
-                s2=s2, s4=s4,
-                sl_initial=sl, sl_after_tp1=sl_after,
-                filters_passed=[] if failed else list(filter_cfg.keys()),
-                filters_failed=failed,
-            ))
+                passed, failed = filters.apply_all(
+                    df, i, 'long', entry, entry_range, curr['timestamp'], filter_cfg,
+                )
+                signals.append(Signal(
+                    timestamp=nxt['timestamp'], direction='long',
+                    entry_price=entry, r4=curr['R2'], r2=curr['R1'], p=p,
+                    s2=tp1, s4=entry,
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                    filters_passed=[] if failed else list(filter_cfg.keys()),
+                    filters_failed=failed,
+                ))
+
+        else:
+            # --- Short: wick to R8 (R4), close back below ---
+            if curr['high'] >= curr['R4'] and curr['close'] < curr['R4']:
+                r4  = curr['R4']
+                r3  = curr['R3']
+                r2  = curr['R2']
+                p   = curr['P']
+                entry_range = r4 - p
+                sl          = r4 + (r4 - r3)
+                sl_after    = r2 + (r2 - curr['R1'])
+
+                passed, failed = filters.apply_all(
+                    df, i, 'short', r4, entry_range, curr['timestamp'], filter_cfg,
+                )
+                signals.append(Signal(
+                    timestamp=nxt['timestamp'], direction='short',
+                    entry_price=r4, r4=r4, r2=r2, p=p,
+                    s2=curr['S2'], s4=curr['S4'],
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                    filters_passed=[] if failed else list(filter_cfg.keys()),
+                    filters_failed=failed,
+                ))
+
+            # --- Long: wick to S0 (S4), close back above ---
+            elif curr['low'] <= curr['S4'] and curr['close'] > curr['S4']:
+                s4  = curr['S4']
+                s3  = curr['S3']
+                s2  = curr['S2']
+                p   = curr['P']
+                entry_range = p - s4
+                sl          = s4 - (s3 - s4)
+                sl_after    = s2 - (curr['S1'] - s2)
+
+                passed, failed = filters.apply_all(
+                    df, i, 'long', s4, entry_range, curr['timestamp'], filter_cfg,
+                )
+                signals.append(Signal(
+                    timestamp=nxt['timestamp'], direction='long',
+                    entry_price=s4, r4=curr['R4'], r2=curr['R2'], p=p,
+                    s2=s2, s4=s4,
+                    sl_initial=sl, sl_after_tp1=sl_after,
+                    filters_passed=[] if failed else list(filter_cfg.keys()),
+                    filters_failed=failed,
+                ))
 
     # Show filter rejection breakdown
     if filter_cfg and signals:

@@ -29,6 +29,7 @@ OANDA_INSTRUMENTS = {
     'GBPEUR': 'EUR_GBP',   # OANDA uses EUR_GBP not GBP_EUR
     'EURUSD': 'EUR_USD',
     'USDJPY': 'USD_JPY',
+    'EURJPY': 'EUR_JPY',
     'GOLD':   'XAU_USD',
     'SPX':    'SPX500_USD',
     'FTSE':   'UK100_GBP',

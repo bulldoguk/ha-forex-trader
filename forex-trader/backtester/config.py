@@ -44,6 +44,27 @@ FILTER_CFG_OVERRIDES = {
         'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
         'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
     },
+    'EURJPY': {
+        # Calibrated from range-bucket analysis: win rate flips at 0.50 (50 pips).
+        # Wide bucket (0.50-0.58): 67% win rate. Very wide (>0.58): 43%, +0.13 avg.
+        'min_range_threshold': 0.50,
+        'use_session':  True,
+        'active_sessions': ('tokyo', 'london', 'newyork'),
+        'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+        'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+    },
+    'GOLD': {
+        # R2 entry (R6 in strategy naming = first extension level) instead of R4.
+        # Daily pivots: R4/S4 are too extended for gold's range to reach reliably.
+        # R2/S2 align better with London/NY fix order flow clustering.
+        # min_range_threshold=0: calibrate from range-bucket analysis after backtest.
+        'entry_level': 'R2',
+        'min_range_threshold': 0,
+        'use_session':  True,
+        'active_sessions': ('london', 'newyork'),
+        'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+        'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+    },
 }
 
 FILTER_CFG = {

@@ -79,15 +79,31 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
-    # GOLD: disabled — negative expectancy (−$7.41/trade) across all range
-    # buckets on 1-year wick-based backtest. Mean-reversion does not appear
-    # reliable for XAU/USD with 4H pivot levels. Re-evaluate with longer data
-    # or a different entry model before re-enabling.
+    'EURJPY': {
+        'oanda': 'EUR_JPY',
+        'units_total':   10_000,
+        'units_partial':  5_000,
+        'pip_size':      0.01,
+        'filter_cfg': {
+            'min_range_threshold': 0.50,   # 50 pips — calibrated from range-bucket analysis
+            'use_session':  True,
+            'active_sessions': ('tokyo', 'london', 'newyork'),
+            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+        },
+    },
+    # GOLD: disabled — negative expectancy across all tested configurations:
+    #   4H pivots R4/S4:    −$7.41/trade  (35 trades, 1yr)
+    #   Daily pivots R4/S4:  3 signals/yr  (levels too extended for gold's range)
+    #   Daily pivots R2/S2: −$11.99/trade (116 trades, 2yr) — 1yr wide-bucket
+    #                        result (86% win) was 2025 bull-run noise, not edge.
+    # Mean-reversion pivot model does not appear reliable for XAU/USD.
     # 'GOLD': {
     #     'oanda': 'XAU_USD',
     #     'units_total':   2,
     #     'units_partial': 1,
     #     'pip_size':      1.0,
+    #     'entry_level':   'R2',
     #     'filter_cfg': { ... },
     # },
 }

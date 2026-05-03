@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.5.0 (2026-05-03)
+
+### Added
+- **EUR/JPY** as a 5th instrument using **4H pivot levels**
+  - 1-year backtest: 50 filtered signals, 48% win rate, +0.107 pts/trade expectancy
+  - 50-pip minimum range threshold calibrated from range-bucket analysis
+  - Tokyo + London + NY session coverage (ECB/BoJ divergence driver)
+  - `eurjpy_enabled` and `eurjpy_units` add-on configuration options
+
+### Fixed
+- `USDJPY_ENABLED` and `USDJPY_UNITS` were not exported in `run.sh`, meaning
+  the HA UI toggle and units field had no effect (USDJPY always ran at default
+  sizing). Now correctly wired.
+
+---
+
 ## v1.4.0 (2026-05-02)
 
 ### Added
