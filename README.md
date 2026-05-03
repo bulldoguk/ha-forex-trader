@@ -1,6 +1,6 @@
 # Forex Trader — Home Assistant Add-on
 
-Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, and GBP/JPY.
+Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, GBP/JPY, and USD/JPY.
 Runs as a Home Assistant add-on with a built-in status dashboard.
 
 ## Installation
@@ -23,13 +23,14 @@ Runs as a Home Assistant add-on with a built-in status dashboard.
 | `gbpusd_enabled` | Trade GBP/USD (default: true) |
 | `eurusd_enabled` | Trade EUR/USD (default: true) |
 | `gbpjpy_enabled` | Trade GBP/JPY (default: true) |
+| `usdjpy_enabled` | Trade USD/JPY (default: true) |
 | `gbpusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `eurusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `gbpjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
+| `usdjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
 
 > **Note:** Gold (XAU/USD) remains disabled — backtesting showed negative
-> expectancy across all range buckets. USD/JPY was also tested and rejected
-> (session filter worsened results). Neither fits the mean-reversion model.
+> expectancy across all range buckets.
 
 ## Dashboard
 
@@ -78,12 +79,13 @@ within 1 hour (4 M15 bars), the order is cancelled.
 
 ### Filters applied
 
-| Filter | GBP/USD | EUR/USD |
-|---|---|---|
-| Min range (R8/S0 → P4) | 41 pips | 41 pips |
-| Session | London + NY (08–22 UTC) | London + NY (08–22 UTC) |
-| Channel (LR z-score) | ≥ 0.3 std devs | ≥ 0.3 std devs |
-| Fibonacci confluence | 5% tolerance | 5% tolerance |
+| Filter | GBP/USD | EUR/USD | GBP/JPY | USD/JPY |
+|---|---|---|---|---|
+| Min range (R8/S0 → P4) | 41 pips | 41 pips | 86 pips | 50 pips |
+| Session | London + NY | London + NY | London + NY | Tokyo + London + NY |
+| Channel (LR z-score) | ≥ 0.3 std devs | ≥ 0.3 std devs | ≥ 0.3 std devs | ≥ 0.3 std devs |
+| Fibonacci confluence | 5% tolerance | 5% tolerance | 5% tolerance | 5% tolerance |
+| Pivot source | 4H candle | 4H candle | 4H candle | Daily candle |
 
 ---
 
@@ -94,24 +96,26 @@ Based on 1-year backtest (OANDA data, wick-based detection, all filters applied)
 
 ### Signal frequency
 
-| Instrument | Raw signals/year | After filters | Filled trades/year |
+| Instrument | Backtest window | After filters | Approx trades/year |
 |---|---|---|---|
-| GBP/USD | 60 | 8 | ~8 |
-| EUR/USD | 58 | 12 | ~12 |
-| GBP/JPY | 68 | ~14 | ~13 |
-| **Total** | **186** | **~34** | **~33** |
+| GBP/USD | 1 year | 8 | ~8 |
+| EUR/USD | 1 year | 12 | ~12 |
+| GBP/JPY | 1 year | ~14 | ~13 |
+| USD/JPY | 3 years | 20 | ~7 |
+| **Total** | | | **~40** |
 
-Approximately **two to three trades per month** across all instruments.
+Approximately **three trades per month** across all instruments.
 
-### Backtest results (1 year, filtered)
+### Backtest results (filtered)
 
-| Instrument | Trades | Win rate | Avg win | Avg loss | Expectancy |
-|---|---|---|---|---|---|
-| GBP/USD | 8 | **62.5%** | +83 pips | −50 pips | +33 pips/trade |
-| EUR/USD | 12 | 50.0% | +61 pips | −56 pips | +3 pips/trade |
-| GBP/JPY | 13 | **54.0%** | +96 pips | −53 pips | +34 pips/trade |
+| Instrument | Trades | Win rate | Avg win | Avg loss | Expectancy | Pivot |
+|---|---|---|---|---|---|---|
+| GBP/USD | 8 | 62.5% | +83 pips | −50 pips | +33 pips/trade | 4H |
+| EUR/USD | 12 | 50.0% | +61 pips | −56 pips | +3 pips/trade | 4H |
+| GBP/JPY | 13 | 54.0% | +96 pips | −53 pips | +34 pips/trade | 4H |
+| USD/JPY | 20 | **85.0%** | +218 pips | −139 pips | **+164 pips/trade** | Daily |
 
-*GBP/JPY pip value ≈ $0.70/pip at 0.1 lot (USD/JPY rate dependent)*
+*USD/JPY figures are from a 3-year backtest. GBP/JPY pip value ≈ $0.70/pip at 0.1 lot.*
 
 ### Expected annual P&L by position size
 
@@ -148,10 +152,4 @@ conclusions about strategy performance.
 
 ## Changelog
 
-| Version | Change |
-|---|---|
-| v1.2.0 | Added GBP/JPY (86-pip min range, 54% win rate), replaced Gold options |
-| v1.1.0 | Wick-based entry detection, 41-pip min range, Gold disabled |
-| v1.0.2 | Unbuffered stdout, clearer scan cycle logging |
-| v1.0.1 | Fixed sys.path priority bug (trader config vs backtester config) |
-| v1.0.0 | Initial release |
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
