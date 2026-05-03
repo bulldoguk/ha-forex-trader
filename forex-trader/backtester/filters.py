@@ -10,10 +10,11 @@ import pandas as pd
 # Fib levels used for confluence check (retracement + extension)
 _KEY_FIBS = [0.236, 0.382, 0.500, 0.618, 0.786, 1.000, 1.272, 1.618, 2.000, 2.618]
 
-# London 08:00-17:00 UTC, New York 13:00-22:00 UTC
+# London 08:00-17:00 UTC, New York 13:00-22:00 UTC, Tokyo 00:00-09:00 UTC
 _SESSIONS = {
     'london':   (8,  17),
     'newyork':  (13, 22),
+    'tokyo':    (0,   9),
 }
 
 

@@ -65,6 +65,20 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
+    'USDJPY': {
+        'oanda': 'USD_JPY',
+        'units_total':   10_000,
+        'units_partial':  5_000,
+        'pip_size':      0.01,           # JPY pair: 1 pip = 0.01
+        'pivot_timeframe': 'daily',      # uses completed daily candle for pivots
+        'filter_cfg': {
+            'min_range_threshold': 0.50, # 50 pips — calibrated from 3-year backtest
+            'use_session':  True,
+            'active_sessions': ('tokyo', 'london', 'newyork'),
+            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+        },
+    },
     # GOLD: disabled — negative expectancy (−$7.41/trade) across all range
     # buckets on 1-year wick-based backtest. Mean-reversion does not appear
     # reliable for XAU/USD with 4H pivot levels. Re-evaluate with longer data
@@ -84,8 +98,9 @@ MONITOR_INTERVAL = 60    # seconds between position checks
 LIMIT_ORDER_TTL  = 4     # M15 bars before unfilled limit is cancelled
 
 # ── Candle history for filters ────────────────────────────────────────────────
-M15_LOOKBACK = 200
-H4_LOOKBACK  = 60
+M15_LOOKBACK   = 200
+H4_LOOKBACK    = 60
+DAILY_LOOKBACK = 10   # completed daily candles needed for pivot assignment
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 LOG_DIR = os.path.join(os.path.dirname(__file__), '..', 'logs')

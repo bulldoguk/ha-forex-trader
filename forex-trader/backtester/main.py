@@ -16,13 +16,21 @@ import pivot_calculator
 import signal_detector
 import trade_simulator
 import reporter
-from config import INSTRUMENTS
+from config import INSTRUMENTS, FILTER_CFG_OVERRIDES
 from oanda_fetcher import OANDA_INSTRUMENTS
+
+# Instruments that use a non-default pivot timeframe
+_PIVOT_TF_OVERRIDES = {
+    'USDJPY': 'daily',
+}
 
 
 def run(name: str, days: int = 365, plot: bool = False,
         use_yf: bool = False) -> pd.DataFrame:
-    print(f"\nFetching {name} ({days}d history)...")
+    pivot_tf   = _PIVOT_TF_OVERRIDES.get(name, '4h')
+    filter_cfg = FILTER_CFG_OVERRIDES.get(name)   # None → use module default
+
+    print(f"\nFetching {name} ({days}d history, pivot={pivot_tf})...")
     try:
         if use_yf:
             import data_fetcher
@@ -30,19 +38,25 @@ def run(name: str, days: int = 365, plot: bool = False,
             if not ticker:
                 print(f"  Skipping {name}: not in yfinance instrument list")
                 return pd.DataFrame()
-            m15, h4 = data_fetcher.fetch(ticker)
+            m15, pivot_df = data_fetcher.fetch(ticker)
         else:
             import oanda_fetcher
-            m15, h4 = oanda_fetcher.fetch(name, days=days)
+            m15, pivot_df = oanda_fetcher.fetch(name, days=days, pivot_tf=pivot_tf)
     except Exception as e:
         print(f"  Skipping {name}: {e}")
         return pd.DataFrame()
 
-    print(f"  M15 bars: {len(m15)}  |  4H bars: {len(h4)}")
+    print(f"  M15 bars: {len(m15)}  |  {pivot_tf.upper()} bars: {len(pivot_df)}")
 
-    enriched = pivot_calculator.assign_to_m15(m15, h4)
-    filtered, all_sigs = signal_detector.detect_all(enriched)
-    print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
+    enriched = pivot_calculator.assign_to_m15(m15, pivot_df, pivot_tf=pivot_tf)
+
+    if filter_cfg is not None:
+        all_sigs = signal_detector.detect(enriched, filter_cfg={})
+        filtered = signal_detector.detect(enriched, filter_cfg=filter_cfg)
+        print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
+    else:
+        filtered, all_sigs = signal_detector.detect_all(enriched)
+        print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
 
     results_filtered = [trade_simulator.simulate(s, enriched) for s in filtered]
     df_filtered = reporter.summarise(results_filtered, name)

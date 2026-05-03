@@ -76,20 +76,22 @@ def calculate(h: float, l: float, c: float) -> PivotLevels:
                        S1=S1, S2=S2, S3=S3, S4=S4)
 
 
-def assign_to_m15(m15: pd.DataFrame, h4: pd.DataFrame) -> pd.DataFrame:
+def assign_to_m15(m15: pd.DataFrame, pivot_src: pd.DataFrame,
+                  pivot_tf: str = '4h') -> pd.DataFrame:
     """
-    For each M15 bar, look up the most recently completed 4H candle
+    For each M15 bar, look up the most recently completed pivot-source candle
     and attach its pivot levels as columns.
+    pivot_tf is used only to name the source timestamp column (e.g. 'pivot_4h_ts').
     """
     records = []
-    h4_times = h4.index.sort_values()
+    src_times = pivot_src.index.sort_values()
 
     for ts, row in m15.iterrows():
-        past = h4_times[h4_times <= ts]
+        past = src_times[src_times <= ts]
         if past.empty:
             continue
-        h4_row = h4.loc[past[-1]]
-        pivots = calculate(h4_row['high'], h4_row['low'], h4_row['close'])
+        src_row = pivot_src.loc[past[-1]]
+        pivots = calculate(src_row['high'], src_row['low'], src_row['close'])
         records.append({
             'timestamp': ts,
             'open':  row['open'],
@@ -101,7 +103,7 @@ def assign_to_m15(m15: pd.DataFrame, h4: pd.DataFrame) -> pd.DataFrame:
             'R3': pivots.R3, 'R4': pivots.R4,
             'S1': pivots.S1, 'S2': pivots.S2,
             'S3': pivots.S3, 'S4': pivots.S4,
-            'pivot_4h_ts': past[-1],
+            f'pivot_{pivot_tf}_ts': past[-1],
         })
 
     out = pd.DataFrame(records).set_index('timestamp')

@@ -29,14 +29,18 @@ def latest_signal(instrument_key: str):
     oanda_instr = instr_cfg['oanda']
     filter_cfg  = instr_cfg['filter_cfg']
 
-    m15_df = oanda_client.get_candles(oanda_instr, 'M15', config.M15_LOOKBACK)
-    h4_df  = oanda_client.get_candles(oanda_instr, 'H4',  config.H4_LOOKBACK)
+    pivot_tf    = instr_cfg.get('pivot_timeframe', 'H4')
+    pivot_gran  = 'D' if pivot_tf == 'daily' else 'H4'
+    pivot_count = config.DAILY_LOOKBACK if pivot_tf == 'daily' else config.H4_LOOKBACK
 
-    if len(m15_df) < 10 or len(h4_df) < 3:
+    m15_df    = oanda_client.get_candles(oanda_instr, 'M15', config.M15_LOOKBACK)
+    pivot_df  = oanda_client.get_candles(oanda_instr, pivot_gran, pivot_count)
+
+    if len(m15_df) < 10 or len(pivot_df) < 3:
         return None
 
-    h4_shifted = h4_df.shift(1).dropna()
-    enriched   = pivot_calculator.assign_to_m15(m15_df, h4_shifted)
+    pivot_shifted = pivot_df.shift(1).dropna()
+    enriched      = pivot_calculator.assign_to_m15(m15_df, pivot_shifted, pivot_tf=pivot_tf)
 
     rows = enriched.reset_index()
     n    = len(rows)

@@ -28,6 +28,7 @@ OANDA_INSTRUMENTS = {
     'GBPJPY': 'GBP_JPY',
     'GBPEUR': 'EUR_GBP',   # OANDA uses EUR_GBP not GBP_EUR
     'EURUSD': 'EUR_USD',
+    'USDJPY': 'USD_JPY',
     'GOLD':   'XAU_USD',
     'SPX':    'SPX500_USD',
     'FTSE':   'UK100_GBP',
@@ -38,33 +39,37 @@ _GRAN = {
     '15min': 'M15',
     '1h':    'H1',
     '4h':    'H4',
+    'daily': 'D',
 }
 
 _MAX_CANDLES = 5000   # OANDA hard limit per request
 
 
-def fetch(instrument: str, days: int = 365) -> tuple[pd.DataFrame, pd.DataFrame]:
+def fetch(instrument: str, days: int = 365,
+          pivot_tf: str = '4h') -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Returns (m15_df, h4_df) for the given instrument name.
-    Fetches `days` of history — OANDA supports multi-year pulls.
+    Returns (m15_df, pivot_df) for the given instrument name.
+    pivot_tf selects the pivot source candle granularity: '4h' (default) or 'daily'.
     """
     oanda_instr = OANDA_INSTRUMENTS.get(instrument)
     if not oanda_instr:
         raise ValueError(f"Unknown instrument: {instrument}. "
                          f"Available: {list(OANDA_INSTRUMENTS.keys())}")
 
+    gran = _GRAN.get(pivot_tf, 'H4')
+
     print(f"  Fetching M15 ({days}d)...", end=' ', flush=True)
     m15_raw = _fetch_candles(oanda_instr, 'M15', days)
     print(f"{len(m15_raw)} candles")
 
-    print(f"  Fetching H4...", end=' ', flush=True)
-    h4_raw  = _fetch_candles(oanda_instr, 'H4', days)
-    print(f"{len(h4_raw)} candles")
+    print(f"  Fetching {gran}...", end=' ', flush=True)
+    pivot_raw = _fetch_candles(oanda_instr, gran, days)
+    print(f"{len(pivot_raw)} candles")
 
-    m15 = _to_dataframe(m15_raw)
-    h4  = _to_dataframe(h4_raw, shift=True)   # shift so we use COMPLETED candle
+    m15       = _to_dataframe(m15_raw)
+    pivot_df  = _to_dataframe(pivot_raw, shift=True)   # shift so we use COMPLETED candle
 
-    return m15, h4
+    return m15, pivot_df
 
 
 def _fetch_candles(instrument: str, granularity: str, days: int) -> list[dict]:

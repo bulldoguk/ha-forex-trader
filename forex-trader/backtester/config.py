@@ -20,6 +20,7 @@ DEFAULT_PIP = {
     'GBPUSD': 0.0001,
     'GBPJPY': 0.01,
     'GBPEUR': 0.0001,
+    'USDJPY': 0.01,
     'GOLD':   0.10,
     'SPX':    1.0,
     'FTSE':   1.0,
@@ -31,6 +32,19 @@ LOOKBACK_DAYS = 59
 # ---------------------------------------------------------------------------
 # Filter configuration
 # ---------------------------------------------------------------------------
+
+# Per-instrument filter overrides (used when instrument needs different settings)
+FILTER_CFG_OVERRIDES = {
+    'USDJPY': {
+        # Starting threshold: 50 pips (0.50 price units at 0.01/pip).
+        # Calibrate via range-bucket output — look for win-rate flip point.
+        'min_range_threshold': 0.50,
+        'use_session':  True,
+        'active_sessions': ('tokyo', 'london', 'newyork'),
+        'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
+        'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
+    },
+}
 
 FILTER_CFG = {
     # Minimum R8/S0 → P4 distance in price units (0 = disabled)
