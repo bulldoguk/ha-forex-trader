@@ -27,7 +27,8 @@ _PIVOT_TF_OVERRIDES = {
 
 
 def run(name: str, days: int = 365, plot: bool = False,
-        use_yf: bool = False, pivot_tf: str = None) -> pd.DataFrame:
+        use_yf: bool = False, pivot_tf: str = None,
+        trend_filter: bool = False) -> pd.DataFrame:
     pivot_tf = pivot_tf or _PIVOT_TF_OVERRIDES.get(name, '4h')
     filter_cfg = FILTER_CFG_OVERRIDES.get(name)   # None → use module default
 
@@ -52,20 +53,30 @@ def run(name: str, days: int = 365, plot: bool = False,
     enriched = pivot_calculator.assign_to_m15(m15, pivot_df, pivot_tf=pivot_tf)
 
     if filter_cfg is not None:
-        # Strip filter conditions for the raw baseline but keep structural options
-        # (e.g. entry_level) so both scans use the same entry mechanism.
         raw_cfg  = {k: v for k, v in filter_cfg.items() if k == 'entry_level'}
         all_sigs = signal_detector.detect(enriched, filter_cfg=raw_cfg)
         filtered = signal_detector.detect(enriched, filter_cfg=filter_cfg)
-        print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
+        trend_cfg = {**filter_cfg, 'use_donchian_trend': True}
     else:
         filtered, all_sigs = signal_detector.detect_all(enriched)
-        print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
+        from config import FILTER_CFG
+        trend_cfg = {**FILTER_CFG, 'use_donchian_trend': True}
+
+    print(f"  Raw signals: {len(all_sigs)}  |  After filters: {len(filtered)}")
 
     results_filtered = [trade_simulator.simulate(s, enriched) for s in filtered]
     df_filtered = reporter.summarise(results_filtered, name)
-    print("\n  [Filtered]")
+    print("\n  [Filtered — existing]")
     reporter.print_report(df_filtered, name)
+
+    if trend_filter:
+        trend_sigs = signal_detector.detect(enriched, filter_cfg=trend_cfg)
+        print(f"  After Donchian trend filter: {len(trend_sigs)} signals "
+              f"({len(filtered) - len(trend_sigs)} blocked by trend direction)")
+        results_trend = [trade_simulator.simulate(s, enriched) for s in trend_sigs]
+        df_trend = reporter.summarise(results_trend, name)
+        print("\n  [Filtered + Donchian trend alignment]")
+        reporter.print_report(df_trend, name)
 
     results_all = [trade_simulator.simulate(s, enriched) for s in all_sigs]
     df_all = reporter.summarise(results_all, name)
@@ -74,14 +85,17 @@ def run(name: str, days: int = 365, plot: bool = False,
 
     if plot:
         reporter.plot_equity(df_filtered, f"{name}_filtered")
+        if trend_filter:
+            reporter.plot_equity(df_trend, f"{name}_trend_filtered")
 
-    return df_filtered
+    return df_trend if trend_filter else df_filtered
 
 
 def main():
-    args   = [a for a in sys.argv[1:] if not a.startswith('--')]
-    plot   = '--plot'  in sys.argv
-    use_yf = '--yf'    in sys.argv
+    args         = [a for a in sys.argv[1:] if not a.startswith('--')]
+    plot         = '--plot'          in sys.argv
+    use_yf       = '--yf'            in sys.argv
+    trend_filter = '--trend-filter'  in sys.argv
 
     days = 365
     pivot_tf_override = None
@@ -101,7 +115,7 @@ def main():
     all_results = []
     for name in targets:
         df = run(name, days=days, plot=plot, use_yf=use_yf,
-                 pivot_tf=pivot_tf_override)
+                 pivot_tf=pivot_tf_override, trend_filter=trend_filter)
         if not df.empty:
             all_results.append(df)
 

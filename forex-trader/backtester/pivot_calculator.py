@@ -76,13 +76,31 @@ def calculate(h: float, l: float, c: float) -> PivotLevels:
                        S1=S1, S2=S2, S3=S3, S4=S4)
 
 
+def _donchian_trend_series(pivot_src: pd.DataFrame, pivot_tf: str) -> pd.Series:
+    """
+    Compute Donchian trend direction on the pivot source candles.
+    N is scaled to approximate 20 trading days regardless of candle size.
+    Returns a Series indexed like pivot_src with values 'long' or 'short'.
+    """
+    bars_per_day = {'daily': 1, 'weekly': 0.2, '4h': 6, '1h': 24}.get(pivot_tf, 6)
+    n = max(int(20 * bars_per_day), 5)
+
+    dc_high = pivot_src['high'].rolling(n).max()
+    dc_low  = pivot_src['low'].rolling(n).min()
+    dc_mid  = (dc_high + dc_low) / 2
+
+    return (pivot_src['close'] > dc_mid).map({True: 'long', False: 'short'})
+
+
 def assign_to_m15(m15: pd.DataFrame, pivot_src: pd.DataFrame,
                   pivot_tf: str = '4h') -> pd.DataFrame:
     """
     For each M15 bar, look up the most recently completed pivot-source candle
-    and attach its pivot levels as columns.
-    pivot_tf is used only to name the source timestamp column (e.g. 'pivot_4h_ts').
+    and attach its pivot levels and Donchian trend direction as columns.
+    pivot_tf is used to name the source timestamp column and scale the Donchian N.
     """
+    dc_trend = _donchian_trend_series(pivot_src, pivot_tf)
+
     records = []
     src_times = pivot_src.index.sort_values()
 
@@ -90,8 +108,9 @@ def assign_to_m15(m15: pd.DataFrame, pivot_src: pd.DataFrame,
         past = src_times[src_times <= ts]
         if past.empty:
             continue
-        src_row = pivot_src.loc[past[-1]]
-        pivots = calculate(src_row['high'], src_row['low'], src_row['close'])
+        src_ts  = past[-1]
+        src_row = pivot_src.loc[src_ts]
+        pivots  = calculate(src_row['high'], src_row['low'], src_row['close'])
         records.append({
             'timestamp': ts,
             'open':  row['open'],
@@ -103,7 +122,8 @@ def assign_to_m15(m15: pd.DataFrame, pivot_src: pd.DataFrame,
             'R3': pivots.R3, 'R4': pivots.R4,
             'S1': pivots.S1, 'S2': pivots.S2,
             'S3': pivots.S3, 'S4': pivots.S4,
-            f'pivot_{pivot_tf}_ts': past[-1],
+            'dc_trend': dc_trend.get(src_ts),
+            f'pivot_{pivot_tf}_ts': src_ts,
         })
 
     out = pd.DataFrame(records).set_index('timestamp')

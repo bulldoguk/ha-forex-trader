@@ -128,6 +128,17 @@ def fibonacci(df: pd.DataFrame, signal_idx: int, level_price: float,
 
 
 # ---------------------------------------------------------------------------
+# 5. Donchian trend alignment filter
+# ---------------------------------------------------------------------------
+
+def donchian_trend(dc_trend_val, direction: str) -> bool:
+    """Pass only if signal direction matches the Donchian trend direction."""
+    if dc_trend_val is None or (isinstance(dc_trend_val, float) and pd.isna(dc_trend_val)):
+        return True  # no trend data yet — pass through
+    return dc_trend_val == direction
+
+
+# ---------------------------------------------------------------------------
 # Composite: run all enabled filters for a signal
 # ---------------------------------------------------------------------------
 
@@ -138,7 +149,7 @@ def apply_all(df: pd.DataFrame, signal_idx: int, direction: str,
     Runs each enabled filter. Returns (passed: bool, failed_filters: list[str]).
     cfg keys: min_range_threshold, use_session, use_channel, use_fibonacci,
               channel_lookback, channel_z, fib_lookback, fib_tolerance_pct,
-              active_sessions.
+              active_sessions, use_donchian_trend.
     """
     failed = []
 
@@ -170,5 +181,11 @@ def apply_all(df: pd.DataFrame, signal_idx: int, direction: str,
                          lookback=cfg.get('fib_lookback', 120),
                          tolerance_pct=cfg.get('fib_tolerance_pct', 0.15)):
             failed.append('fibonacci')
+
+    if cfg.get('use_donchian_trend') is True:
+        dc_val = df.iloc[signal_idx].get('dc_trend') if hasattr(df.iloc[signal_idx], 'get') \
+                 else df.iloc[signal_idx]['dc_trend'] if 'dc_trend' in df.columns else None
+        if not donchian_trend(dc_val, direction):
+            failed.append('donchian_trend')
 
     return (len(failed) == 0, failed)

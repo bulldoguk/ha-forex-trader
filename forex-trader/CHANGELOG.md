@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.3 (2026-05-03)
+
+### Changed
+- **GBP/USD** now filters signals by **Donchian trend direction**: only longs in uptrend, only shorts in downtrend (N=120 4H bars ≈ 1 month lookback)
+  - 2-year backtest: win rate 57%→64%, expectancy +0.00204→+0.00301 pts/trade, max drawdown cut 84% (-0.027→-0.004)
+  - Trend direction derived from 4H pivot source candles already fetched — no extra API calls
+
+### Research (backtester only — no live changes)
+- **Donchian channel breakout** tested as a standalone trend strategy on GBP/JPY, USD/JPY, EUR/USD, USD/CAD (daily bars, N=20/55, channel/ATR exits): almost all negative across 2yr window. 2025 was dominated by failed breakouts. Standalone trend-following rejected.
+- **ADX filter on Donchian breakout** tested (ADX≥20, ADX≥25 at entry): no consistent improvement — ADX was already elevated at entry for many losing trades. Regime was the problem, not signal quality.
+- **Donchian trend as mean-reversion filter** tested on all live pairs: positive on GBP/USD (deployed), neutral on USD/JPY, harmful on EUR/USD (cuts too many good signals), no effect on GBP/JPY (pair is weak regardless).
+
+---
+
 ## v1.5.2 (2026-05-03)
 
 ### Added
