@@ -31,7 +31,7 @@ def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
     if trade_state != 'OPEN':
         close_price  = float(trade.get('averageClosePrice', st['entry_price']))
         close_reason = trade_state  # 'CLOSED', etc.
-        return _handle_close(st, close_price, close_reason)
+        return _handle_close(st, close_price, close_reason, instrument_key)
 
     current_price = float(trade.get('price', st['entry_price']))
 

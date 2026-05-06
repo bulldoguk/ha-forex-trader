@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.4 (2026-05-06)
+
+### Fixed
+- Broker-closed trades (SL hit, server-side TP) now log and notify correctly.
+  `_handle_close` was missing the `instrument_key` argument when called from
+  the broker-closed branch in `monitor.py`, causing a `TypeError` and repeated
+  error alerts any time the broker closed a position externally.
+
+---
+
 ## v1.5.3 (2026-05-03)
 
 ### Changed
