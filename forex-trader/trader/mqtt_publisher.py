@@ -22,13 +22,12 @@ TOPIC_STATUS  = 'forex_trader/status'
 
 def _get_client():
     global _client, _last_connect_attempt
+
+    # Return existing client without checking is_connected() — paho queues
+    # messages during connection setup, so checking is_connected() here would
+    # discard the client before the CONNACK arrives and silently drop publishes.
     if _client is not None:
-        try:
-            if _client.is_connected():
-                return _client
-        except Exception:
-            pass
-        _client = None
+        return _client
 
     now = time.time()
     if now - _last_connect_attempt < _RETRY_INTERVAL:
