@@ -11,7 +11,7 @@ arch:
 init: false
 ingress: true
 ingress_port: 5000
-panel_icon: "mdi:chart-candlestick"
+panel_icon: "mdi:chart-line"
 panel_title: "Forex Trader"
 
 options:
