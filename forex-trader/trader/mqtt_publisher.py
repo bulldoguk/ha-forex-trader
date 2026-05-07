@@ -1,0 +1,87 @@
+"""Non-blocking MQTT publisher — pushes forex trader state to Home Assistant."""
+
+import json
+import os
+import time
+import logging
+
+log = logging.getLogger(__name__)
+
+_client = None
+_last_connect_attempt = 0.0
+_RETRY_INTERVAL = 60  # seconds between reconnect attempts
+
+_host = os.environ.get('MQTT_HOST', 'core-mosquitto')
+_port = int(os.environ.get('MQTT_PORT', '1883'))
+_user = os.environ.get('MQTT_USER', '')
+_pass = os.environ.get('MQTT_PASSWORD', '')
+
+TOPIC_ACCOUNT = 'forex_trader/account'
+TOPIC_STATUS  = 'forex_trader/status'
+
+
+def _get_client():
+    global _client, _last_connect_attempt
+    if _client is not None:
+        try:
+            if _client.is_connected():
+                return _client
+        except Exception:
+            pass
+        _client = None
+
+    now = time.time()
+    if now - _last_connect_attempt < _RETRY_INTERVAL:
+        return None
+    _last_connect_attempt = now
+
+    if not _host:
+        return None
+
+    try:
+        import paho.mqtt.client as mqtt
+        c = mqtt.Client(client_id='forex_trader_ha', clean_session=True)
+        if _user:
+            c.username_pw_set(_user, _pass)
+        c.connect(_host, _port, keepalive=60)
+        c.loop_start()
+        _client = c
+        log.info(f'MQTT connected to {_host}:{_port}')
+        return _client
+    except Exception as exc:
+        log.warning(f'MQTT connect failed ({_host}:{_port}): {exc}')
+        return None
+
+
+def _publish(topic: str, payload: dict) -> None:
+    c = _get_client()
+    if c is None:
+        return
+    try:
+        c.publish(topic, json.dumps(payload), qos=0, retain=True)
+    except Exception as exc:
+        log.warning(f'MQTT publish failed ({topic}): {exc}')
+        global _client
+        _client = None
+
+
+def publish_status(state: dict) -> None:
+    """Publish instrument status counts — reads in-memory state, no API call."""
+    counts = {
+        'active':  sum(1 for v in state.values() if v.get('status') == 'filled'),
+        'pending': sum(1 for v in state.values() if v.get('status') == 'pending'),
+        'idle':    sum(1 for v in state.values() if v.get('status') == 'idle'),
+        'total':   len(state),
+    }
+    _publish(TOPIC_STATUS, counts)
+
+
+def publish_account(account: dict) -> None:
+    """Publish account summary (caller fetches from OANDA)."""
+    payload = {
+        'balance':        round(float(account.get('balance', 0)), 2),
+        'NAV':            round(float(account.get('NAV', 0)), 2),
+        'unrealizedPL':   round(float(account.get('unrealizedPL', 0)), 2),
+        'openTradeCount': int(account.get('openTradeCount', 0)),
+    }
+    _publish(TOPIC_ACCOUNT, payload)

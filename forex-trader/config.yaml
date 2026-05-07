@@ -1,5 +1,5 @@
 name: "Forex Trader"
-version: "1.5.4"
+version: "1.6.0"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/JPY, EUR/JPY, USD/CAD"
 url: "https://github.com/bulldoguk/ha-forex-trader"
@@ -21,6 +21,10 @@ options:
   gmail_from: ""
   gmail_app_password: ""
   notify_email: ""
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_password: ""
   gbpusd_enabled: true
   eurusd_enabled: true
   gbpjpy_enabled: true
@@ -41,6 +45,10 @@ schema:
   gmail_from: str
   gmail_app_password: str
   notify_email: str
+  mqtt_host: str
+  mqtt_port: int
+  mqtt_user: str
+  mqtt_password: str
   gbpusd_enabled: bool
   eurusd_enabled: bool
   gbpjpy_enabled: bool

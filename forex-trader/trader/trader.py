@@ -29,6 +29,7 @@ import monitor
 import notifier
 import logger
 import state as _state
+import mqtt_publisher
 
 
 def _next_m15_close() -> datetime:
@@ -166,6 +167,9 @@ def run():
                      instruments=list(config.INSTRUMENTS.keys()),
                      statuses={k: state[k]['status'] for k in state})
 
+    mqtt_publisher.publish_account(acct)
+    mqtt_publisher.publish_status(state)
+
     while True:
         try:
             # ── Monitor all filled positions (runs continuously) ──────────────
@@ -202,6 +206,13 @@ def run():
                   flush=True)
             logger.log_event('scan_complete',
                              statuses={k: state[k]['status'] for k in state})
+
+            try:
+                acct = oanda_client.get_account_summary()
+                mqtt_publisher.publish_account(acct)
+            except Exception:
+                pass
+            mqtt_publisher.publish_status(state)
 
         except KeyboardInterrupt:
             print('\nDaemon stopped.')

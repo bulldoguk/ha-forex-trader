@@ -7,6 +7,10 @@ export OANDA_ENV=$(bashio::config 'oanda_env')
 export GMAIL_FROM_EMAIL=$(bashio::config 'gmail_from')
 export GMAIL_APP_PASSWORD=$(bashio::config 'gmail_app_password')
 export NOTIFY_EMAIL=$(bashio::config 'notify_email')
+export MQTT_HOST=$(bashio::config 'mqtt_host')
+export MQTT_PORT=$(bashio::config 'mqtt_port')
+export MQTT_USER=$(bashio::config 'mqtt_user')
+export MQTT_PASSWORD=$(bashio::config 'mqtt_password')
 
 # ── Per-instrument toggles and sizing ─────────────────────────────────────────
 export GBPUSD_ENABLED=$(bashio::config 'gbpusd_enabled')
