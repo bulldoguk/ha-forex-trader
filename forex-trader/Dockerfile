@@ -7,7 +7,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy source code
+# Copy source code — ARG forces cache invalidation on version bump
+ARG ADDON_VERSION=unknown
 COPY backtester/ ./backtester/
 COPY trader/     ./trader/
 COPY webapp.py   entrypoint.py ./

@@ -1,5 +1,69 @@
 # Changelog
 
+## v1.6.6 (2026-05-08)
+
+### Fixed
+- Docker layer cache was not being busted on version bumps, causing HA to run
+  stale Python files even after updating the add-on. Added `ARG ADDON_VERSION`
+  to the Dockerfile immediately before `COPY trader/`, which forces Docker to
+  rebuild all subsequent layers on every version change.
+
+---
+
+## v1.6.5 (2026-05-07)
+
+### Fixed
+- Added `VERSION` constant to `monitor.py` to ensure the file is always
+  changed on a release, giving Docker a reliable signal to invalidate the
+  cached `trader/` layer. Also logs `monitor.VERSION` at daemon startup for
+  easier version verification in HA logs.
+
+---
+
+## v1.6.4 (2026-05-07)
+
+### Fixed
+- Re-applied the `_handle_close` / `instrument_key` fix from v1.5.4 after
+  sync drift during the v1.6.0 MQTT work silently reverted `monitor.py` to
+  the pre-fix version.
+
+---
+
+## v1.6.3 (2026-05-07)
+
+### Changed
+- Merged `mqtt_publisher` module into the root `trader.py` to eliminate the
+  sync-drift risk that caused the v1.6.4 regression. Resolved outstanding
+  file-sync inconsistencies between `trader/` and the add-on directory.
+
+---
+
+## v1.6.2 (2026-05-06)
+
+### Fixed
+- Corrected `panel_icon` in `config.yaml`: replaced `mdi:chart-candlestick`
+  (not a valid MDI icon) with `mdi:chart-line` so the sidebar icon renders
+  correctly in HA.
+
+---
+
+## v1.6.1 (2026-05-06)
+
+### Fixed
+- MQTT status topic was not published on daemon startup, leaving HA sensors
+  in an unknown state until the first scan cycle completed.
+
+---
+
+## v1.6.0 (2026-05-06)
+
+### Added
+- MQTT publishing for Home Assistant sensors: account balance/NAV and
+  per-instrument status are now pushed to the broker on startup and after
+  every state change, enabling live HA dashboard cards and automations.
+
+---
+
 ## v1.5.4 (2026-05-06)
 
 ### Fixed
