@@ -150,7 +150,8 @@ def _handle_filled(state: dict, key: str) -> dict:
 
 def run():
     print(f'[{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}] '
-          f'Trader daemon starting — instruments: {", ".join(config.INSTRUMENTS)}')
+          f'Trader daemon starting — instruments: {", ".join(config.INSTRUMENTS)}  '
+          f'monitor.VERSION={monitor.VERSION}')
 
     try:
         acct = oanda_client.get_account_summary()
