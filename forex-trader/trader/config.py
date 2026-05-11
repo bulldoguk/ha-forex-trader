@@ -9,7 +9,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backtester'))
 # ── OANDA ────────────────────────────────────────────────────────────────────
 OANDA_TOKEN    = os.environ['OANDA_API_TOKEN']
 OANDA_ACCOUNT  = os.environ['OANDA_ACCOUNT_ID']
-OANDA_BASE_URL = 'https://api-fxpractice.oanda.com'
+OANDA_BASE_URL = ('https://api-fxtrade.oanda.com'
+                  if os.environ.get('OANDA_ENV', 'practice') == 'live'
+                  else 'https://api-fxpractice.oanda.com')
 
 # ── Gmail ────────────────────────────────────────────────────────────────────
 GMAIL_FROM     = os.environ['GMAIL_FROM_EMAIL']
@@ -135,4 +137,4 @@ H4_LOOKBACK    = 60
 DAILY_LOOKBACK = 10   # completed daily candles needed for pivot assignment
 
 # ── Logging ──────────────────────────────────────────────────────────────────
-LOG_DIR = os.path.join(os.path.dirname(__file__), '..', 'logs')
+LOG_DIR = os.environ.get('LOG_DIR', os.path.join(os.path.dirname(__file__), '..', 'logs'))

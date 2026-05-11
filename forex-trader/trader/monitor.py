@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.6.6"
+VERSION = "1.6.7"
 
 import traceback
 import oanda_client

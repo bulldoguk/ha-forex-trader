@@ -1,10 +1,13 @@
 """Gmail SMTP notifications for all key trade events."""
 
-import smtplib, traceback
+import smtplib, traceback, time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 import config
+
+_ERROR_COOLDOWN_SECS = 3600   # one email per context per hour
+_last_error_sent: dict[str, float] = {}
 
 
 def _send(subject: str, body: str):
@@ -121,6 +124,12 @@ Total P&L:    {total_pips:+.1f} {pip_unit}
 
 
 def error(context: str, detail: str):
+    now = time.time()
+    last = _last_error_sent.get(context, 0.0)
+    if now - last < _ERROR_COOLDOWN_SECS:
+        print(f'[notifier] suppressed repeat error "{context}" (cooldown)')
+        return
+    _last_error_sent[context] = now
     _send(
         f'[TRADER] ERROR in {context}',
         f"""Error in trading daemon.

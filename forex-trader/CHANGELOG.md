@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.6.7 (2026-05-11)
+
+### Fixed
+- **Email storm (critical)**: `scanner.latest_signal()` was called in `_handle_idle()`
+  without any exception protection. Any OANDA API error (timeout, 5xx) during a scan
+  escaped to the outer daemon loop handler, which sent an error email and retried after
+  60 seconds — creating an email every minute until the API recovered. Fixed by wrapping
+  the scanner call in its own try/except that logs and skips the scan gracefully.
+- **Error rate-limiting**: Added a 1-hour cooldown to `notifier.error()` so that even
+  if an exception does reach the outer handler repeatedly, only the first email per
+  context per hour is sent. Subsequent suppressions are logged to stdout.
+- **OANDA_ENV ignored**: `OANDA_BASE_URL` was hardcoded to `api-fxpractice.oanda.com`
+  even when the add-on option `oanda_env` was set to `live`. Config now reads the
+  `OANDA_ENV` environment variable (exported by `run.sh`) to select the correct URL.
+- **LOG_DIR ignored**: State and log files were written to `/app/logs/` inside the
+  container instead of `/share/forex_trader/logs` (the persistent path set by `run.sh`),
+  causing state loss on every container restart. Config now reads `LOG_DIR` from
+  the environment.
+
+---
+
 ## v1.6.6 (2026-05-08)
 
 ### Fixed

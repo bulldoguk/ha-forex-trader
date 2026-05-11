@@ -49,7 +49,11 @@ def _sleep_until(dt: datetime):
 # ── Per-instrument handlers ───────────────────────────────────────────────────
 
 def _handle_idle(state: dict, key: str) -> dict:
-    sig = scanner.latest_signal(key)
+    try:
+        sig = scanner.latest_signal(key)
+    except Exception:
+        logger.log_event('scan_error', instrument=key, detail=traceback.format_exc())
+        return state
     if sig is None:
         return state
 
@@ -170,6 +174,7 @@ def run():
 
     mqtt_publisher.publish_account(acct)
     mqtt_publisher.publish_status(state)
+    notifier.startup(list(config.INSTRUMENTS.keys()))
 
     while True:
         try:
