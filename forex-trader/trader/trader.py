@@ -185,6 +185,12 @@ def run():
                 for key in config.INSTRUMENTS:
                     if state[key]['status'] == 'filled':
                         state = _handle_filled(state, key)
+                try:
+                    acct = oanda_client.get_account_summary()
+                    mqtt_publisher.publish_account(acct)
+                except Exception:
+                    pass
+                mqtt_publisher.publish_status(state)
                 time.sleep(config.MONITOR_INTERVAL)
                 continue
 

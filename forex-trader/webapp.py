@@ -236,12 +236,14 @@ def _read_trades(n: int) -> list:
     with open(path) as f:
         lines = f.readlines()
     trades = []
-    for line in reversed(lines[-n * 3:]):
+    for line in lines:
         try:
-            trades.append(json.loads(line.strip()))
+            entry = json.loads(line.strip())
+            if entry.get('event') == 'trade_close':
+                trades.append(entry)
         except Exception:
             pass
-    return trades[:n]
+    return trades[-n:]
 
 
 def run_server():

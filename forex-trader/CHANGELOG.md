@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.6.8 (2026-05-13)
+
+### Fixed
+- **Trade history not showing**: Dashboard history section only scanned the last 120 lines
+  of `trades.jsonl`, so completed trades older than ~30 hours of scan entries were silently
+  excluded. Now scans the full log for `trade_close` events.
+- **Open P&L stuck on mobile tile**: MQTT account data (`unrealizedPL`) was only published
+  at startup and between scan cycles — never during active position monitoring. The monitoring
+  loop now fetches a fresh account summary and publishes it every 60 seconds while a trade
+  is open.
+
 ## v1.6.7 (2026-05-11)
 
 ### Fixed
