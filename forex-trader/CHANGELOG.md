@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.6.9 (2026-06-11)
+
+### Fixed
+- **TP1/TP2 never triggered (critical)**: `monitor.py` was reading `trade['price']` from
+  the Oanda trade object to determine current price. That field is the *fill price*, not
+  the live market price — so the TP conditions were permanently stuck at entry and would
+  never fire. Fixed by fetching live price via `get_current_price()` before each TP check.
+
 ## v1.6.8 (2026-05-13)
 
 ### Fixed

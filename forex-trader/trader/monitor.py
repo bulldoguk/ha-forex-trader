@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.6.7"
+VERSION = "1.6.6"
 
 import traceback
 import oanda_client
@@ -35,7 +35,12 @@ def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
         close_reason = trade_state  # 'CLOSED', etc.
         return _handle_close(st, close_price, close_reason, instrument_key)
 
-    current_price = float(trade.get('price', st['entry_price']))
+    instrument_oanda = config.INSTRUMENTS[instrument_key]['oanda']
+    try:
+        current_price = oanda_client.get_current_price(instrument_oanda)
+    except Exception as e:
+        logger.log_event('price_fetch_error', instrument=instrument_key, detail=str(e))
+        return 'error', st
 
     # ── TP1 not yet hit ──────────────────────────────────────────────────────
     if not st['tp1_hit']:
