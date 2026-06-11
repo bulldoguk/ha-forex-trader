@@ -126,6 +126,9 @@ INSTRUMENTS = {
     # },
 }
 
+# ── Position limits ──────────────────────────────────────────────────────────
+MAX_CONCURRENT_POSITIONS = 2   # discard new signals when this many are pending/filled
+
 # ── Timing ───────────────────────────────────────────────────────────────────
 SCAN_DELAY_SECS  = 60    # seconds after M15 close before scanning
 MONITOR_INTERVAL = 60    # seconds between position checks

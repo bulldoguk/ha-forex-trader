@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.6.10 (2026-06-11)
+
+### Added
+- **Max concurrent positions cap**: New signals are silently discarded when 2 or more
+  instruments are already pending or filled. Prevents margin pressure on small accounts
+  from the unlikely-but-possible multi-instrument simultaneous signal scenario.
+  Configured via `MAX_CONCURRENT_POSITIONS = 2` in `config.py`.
+
 ## v1.6.9 (2026-06-11)
 
 ### Fixed

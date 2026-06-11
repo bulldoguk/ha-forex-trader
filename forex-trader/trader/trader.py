@@ -49,6 +49,10 @@ def _sleep_until(dt: datetime):
 # ── Per-instrument handlers ───────────────────────────────────────────────────
 
 def _handle_idle(state: dict, key: str) -> dict:
+    active = sum(1 for k in config.INSTRUMENTS if state[k]['status'] != 'idle')
+    if active >= config.MAX_CONCURRENT_POSITIONS:
+        return state
+
     try:
         sig = scanner.latest_signal(key)
     except Exception:
