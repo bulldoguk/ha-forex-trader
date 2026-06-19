@@ -36,7 +36,7 @@ jobs:
         uses: home-assistant/builder@master
         with:
           args: |
-            --amd64 --aarch64 --armhf --armv7 \
+            --amd64 --aarch64 \
             --target /data/forex-trader \
             --generic ${{ steps.info.outputs.version }} \
             --docker-hub ghcr.io/bulldoguk
