@@ -1,8 +1,9 @@
 name: "Forex Trader"
-version: "1.6.10"
+version: "1.6.11"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/JPY, EUR/JPY, USD/CAD"
 url: "https://github.com/bulldoguk/ha-forex-trader"
+image: "ghcr.io/bulldoguk/{arch}-addon-forex_trader"
 arch:
   - aarch64
   - amd64

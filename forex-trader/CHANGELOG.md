@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.6.11 (2026-06-19)
+
+### Changed
+- Switched to a prebuilt multi-arch image (`ghcr.io/bulldoguk/{arch}-addon-forex_trader`)
+  published via GitHub Actions on push to `main`, instead of building locally
+  on the HA box. Same motivation as the jeeves-agent conversion: avoids
+  local-build edge cases during automatic HA backups and is a prerequisite
+  for publishing the add-on for others to install.
+
 ## v1.6.10 (2026-06-11)
 
 ### Added
