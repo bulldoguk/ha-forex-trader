@@ -1,4 +1,4 @@
-name: Build and publish add-on image
+name: Build and publish add-on images
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "forex-trader/**"
+      - "forex-pairs/**"
       - ".github/workflows/build.yaml"
   workflow_dispatch:
 
@@ -15,6 +16,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        addon:
+          - forex-trader
+          - forex-pairs
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -23,7 +29,7 @@ jobs:
         id: info
         uses: home-assistant/actions/helpers/info@master
         with:
-          path: "./forex-trader"
+          path: "./${{ matrix.addon }}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -37,6 +43,6 @@ jobs:
         with:
           args: |
             --amd64 --aarch64 \
-            --target /data/forex-trader \
+            --target /data/${{ matrix.addon }} \
             --generic ${{ steps.info.outputs.version }} \
             --docker-hub ghcr.io/bulldoguk

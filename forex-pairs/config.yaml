@@ -1,0 +1,41 @@
+name: "Forex Pairs (EUR/GBP)"
+version: "0.1.0"
+slug: "forex_pairs"
+description: "EUR/GBP daily z-score mean-reversion — diversifier running alongside the MR Forex Trader"
+url: "https://github.com/bulldoguk/ha-forex-trader"
+image: "ghcr.io/bulldoguk/{arch}-addon-forex_pairs"
+arch:
+  - aarch64
+  - amd64
+init: false
+
+options:
+  oanda_token: ""
+  oanda_account_id: ""
+  oanda_env: "practice"
+  gmail_from: ""
+  gmail_app_password: ""
+  notify_email: ""
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_password: ""
+  eurgbp_units: 5000
+  dry_run: true
+
+schema:
+  oanda_token: str
+  oanda_account_id: str
+  oanda_env: "list(practice|live)"
+  gmail_from: str
+  gmail_app_password: str
+  notify_email: str
+  mqtt_host: str
+  mqtt_port: int
+  mqtt_user: str
+  mqtt_password: str
+  eurgbp_units: int
+  dry_run: bool
+
+map:
+  - share:rw
