@@ -67,20 +67,15 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
-    'USDJPY': {
-        'oanda': 'USD_JPY',
-        'units_total':   10_000,
-        'units_partial':  5_000,
-        'pip_size':      0.01,           # JPY pair: 1 pip = 0.01
-        'pivot_timeframe': 'daily',      # uses completed daily candle for pivots
-        'filter_cfg': {
-            'min_range_threshold': 0.50, # 50 pips — calibrated from 3-year backtest
-            'use_session':  True,
-            'active_sessions': ('tokyo', 'london', 'newyork'),
-            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
-            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
-        },
-    },
+    # USDJPY: removed 2026-07-01 — no genuine intraday edge on either timeframe.
+    #   Daily pivots: backtest showed 85% win / +164 pips, but that was an artifact
+    #     of the backtester's unlimited holding time (median winning hold 2.4 days).
+    #     Under a realistic 1-day cap the edge collapsed to 40% win / +47 pips
+    #     (shorts 81%→31%). Both live trades (Trade 5, Trade 6) were shorts stopped
+    #     out mid-swing — exactly this failure mode.
+    #   4h pivots: genuinely intraday but a proven loser at every range threshold
+    #     (36% win, −9 to −14 pips/trade, both directions).
+    #   See decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact.md.
     'USDCAD': {
         'oanda': 'USD_CAD',
         'units_total':   10_000,
@@ -97,19 +92,10 @@ INSTRUMENTS = {
             'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
         },
     },
-    'EURJPY': {
-        'oanda': 'EUR_JPY',
-        'units_total':   10_000,
-        'units_partial':  5_000,
-        'pip_size':      0.01,
-        'filter_cfg': {
-            'min_range_threshold': 0.50,   # 50 pips — calibrated from range-bucket analysis
-            'use_session':  True,
-            'active_sessions': ('tokyo', 'london', 'newyork'),
-            'use_channel':  True,  'channel_lookback': 60, 'channel_z': 0.3,
-            'use_fibonacci': True, 'fib_lookback': 120, 'fib_tolerance_pct': 5.0,
-        },
-    },
+    # EURJPY: removed 2026-07-01 — daily pivots produced only 4 signals in 3 years
+    #   (effectively inactive) and shares USDJPY's daily-pivot multi-day-hold risk
+    #   profile with far too little data to justify. Pulled alongside USDJPY.
+    #   See decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact.md.
     # GOLD: disabled — negative expectancy across all tested configurations:
     #   4H pivots R4/S4:    −$7.41/trade  (35 trades, 1yr)
     #   Daily pivots R4/S4:  3 signals/yr  (levels too extended for gold's range)
@@ -133,6 +119,13 @@ MAX_CONCURRENT_POSITIONS = 2   # discard new signals when this many are pending/
 SCAN_DELAY_SECS  = 60    # seconds after M15 close before scanning
 MONITOR_INTERVAL = 60    # seconds between position checks
 LIMIT_ORDER_TTL  = 4     # M15 bars before unfilled limit is cancelled
+
+# Time-stop: force-close a still-open position this many hours after fill.
+# The strategy is intraday mean-reversion; the robust instruments (GBPUSD, USDCAD)
+# close within a day. Capping the hold keeps live behaviour honest and prevents
+# the multi-day "wait for reversion" drift that flattered the USDJPY daily-pivot
+# backtest (see decisions/0002). 24h leaves genuine intraday trades untouched.
+MAX_HOLD_HOURS   = int(os.environ.get('MAX_HOLD_HOURS', 24))
 
 # ── Candle history for filters ────────────────────────────────────────────────
 M15_LOOKBACK   = 200

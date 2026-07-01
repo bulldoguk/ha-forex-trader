@@ -15,6 +15,15 @@ SIGNAL_TF  = '15min' # chart timeframe for entry signals
 LOT_SIZE   = 0.5     # lots per trade leg
 NUM_LEGS   = 2       # always 2 legs per entry
 
+# Holding-time cap (M15 bars). Mirrors the live daemon's MAX_HOLD_HOURS (24h).
+# 96 bars = 24h. Any leg still open at the cap is marked-to-market at that bar's
+# close, exactly as the live time-stop force-closes at market. This keeps the
+# backtest honest: without it, simulate() held positions indefinitely until price
+# eventually reverted, which manufactured a fake edge on daily-pivot instruments
+# (USDJPY: 85% win uncapped → 40% at 1-day cap). See
+# ../decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact.md.
+MAX_HOLD_BARS = 96
+
 # Pip value fallback (used when broker pip size unknown)
 DEFAULT_PIP = {
     'GBPUSD': 0.0001,

@@ -16,14 +16,10 @@ export MQTT_PASSWORD=$(bashio::config 'mqtt_password')
 export GBPUSD_ENABLED=$(bashio::config 'gbpusd_enabled')
 export EURUSD_ENABLED=$(bashio::config 'eurusd_enabled')
 export GBPJPY_ENABLED=$(bashio::config 'gbpjpy_enabled')
-export USDJPY_ENABLED=$(bashio::config 'usdjpy_enabled')
-export EURJPY_ENABLED=$(bashio::config 'eurjpy_enabled')
 export USDCAD_ENABLED=$(bashio::config 'usdcad_enabled')
 export GBPUSD_UNITS=$(bashio::config 'gbpusd_units')
 export EURUSD_UNITS=$(bashio::config 'eurusd_units')
 export GBPJPY_UNITS=$(bashio::config 'gbpjpy_units')
-export USDJPY_UNITS=$(bashio::config 'usdjpy_units')
-export EURJPY_UNITS=$(bashio::config 'eurjpy_units')
 export USDCAD_UNITS=$(bashio::config 'usdcad_units')
 
 # ── Persistent storage (survives container restarts) ──────────────────────────
@@ -31,7 +27,7 @@ export LOG_DIR=/share/forex_trader/logs
 mkdir -p "${LOG_DIR}"
 
 bashio::log.info "Starting Forex Trader — OANDA ${OANDA_ENV}"
-bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GBPJPY=${GBPJPY_ENABLED} USDJPY=${USDJPY_ENABLED} EURJPY=${EURJPY_ENABLED} USDCAD=${USDCAD_ENABLED}"
+bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GBPJPY=${GBPJPY_ENABLED} USDCAD=${USDCAD_ENABLED}"
 
 # Force Python to flush stdout immediately — without this, print() output
 # is buffered in Docker and never appears in the HA log viewer

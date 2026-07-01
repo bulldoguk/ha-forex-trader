@@ -1,5 +1,49 @@
 # Changelog
 
+Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
+(v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
+
+## v1.7.1 (2026-07-01)
+
+### Fixed
+- **Pip double-count on trade close (dashboard/notifier/journal).** `logger.py`
+  reported `total_pnl_pips = leg1 + leg2`, but each leg is only half the position,
+  so the sum was ~2× the real per-position move — worst on SL-only exits where both
+  legs move the same distance (Trade 5 shown as −86.4 vs real −43.2; Trade 6 −63.4
+  vs real −31.7). Now size-weighted: `(leg1·units1 + leg2·units2) / units_total`,
+  which reconciles with dollar/NAV. `monitor.py` passes the leg unit sizes; the
+  backtester's `TradeResult.total_pnl` is weighted the same way for a consistent
+  scale. **Note:** historical backtest pip figures in older docs used the old sum
+  convention and read ~2× the corrected per-position values.
+
+## v1.7.0 (2026-07-01)
+
+### Removed
+- **USD/JPY and EUR/JPY dropped from the MR bot.** USD/JPY's daily-pivot backtest
+  (85% win / +164 pips) was an artifact of the backtester's unlimited holding time —
+  winning trades held a median 2.4 days; under a realistic 1-day cap the edge
+  collapsed to 40% win / +47 pips (shorts 81%→31%). On 4h pivots USD/JPY loses at
+  every threshold. Both live trades (Trade 5, Trade 6) were shorts stopped out
+  mid-swing. EUR/JPY shares the daily-pivot profile with only 4 signals in 3 years.
+  Remaining instruments: GBPUSD, EURUSD, GBPJPY, USDCAD. See ADR
+  [[projects/forex/decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact|0002]].
+
+### Added
+- **Time-stop** (`MAX_HOLD_HOURS = 24`, `monitor.py`): a position still open 24h
+  after fill is force-closed at market (reason `time_stop`). The robust intraday
+  instruments close well within a day, so this is a guardrail that prevents the
+  multi-day "wait for reversion" drift that flattered the removed pairs. Overridable
+  via the `MAX_HOLD_HOURS` env var.
+- **Backtester holding-time cap** (`MAX_HOLD_BARS = 96`, `trade_simulator.py`):
+  mirrors the live time-stop so backtests can no longer manufacture edge by holding
+  indefinitely. Open legs are marked-to-market at the cap bar's close; new `timeout`
+  outcome label.
+
+### Known / still open
+- Dashboard/notifier **pip double-count** on SL-only exits (`leg2_pips = leg1_pips`
+  summed in `logger.py`) is *not* fixed in this release — tracked separately. Treat
+  dollar/NAV as ground truth for now.
+
 ## v1.6.11 (2026-06-19)
 
 ### Changed

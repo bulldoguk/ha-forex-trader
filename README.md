@@ -1,7 +1,10 @@
 # Forex Trader — Home Assistant Add-on
 
-Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, GBP/JPY, and USD/JPY.
-Runs as a Home Assistant add-on with a built-in status dashboard.
+Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, GBP/JPY, and USD/CAD.
+(USD/JPY and EUR/JPY were removed in v1.7.0 — see [[projects/forex/decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact|ADR 0002]].)
+Runs as a Home Assistant add-on with a built-in status dashboard. Strategy detail in
+[[projects/forex/docs/strategy_pivot_meanreversion|docs/strategy_pivot_meanreversion.md]];
+project overview in [[projects/forex/CLAUDE|CLAUDE.md]].
 
 ## Installation
 
@@ -23,11 +26,11 @@ Runs as a Home Assistant add-on with a built-in status dashboard.
 | `gbpusd_enabled` | Trade GBP/USD (default: true) |
 | `eurusd_enabled` | Trade EUR/USD (default: true) |
 | `gbpjpy_enabled` | Trade GBP/JPY (default: true) |
-| `usdjpy_enabled` | Trade USD/JPY (default: true) |
+| `usdcad_enabled` | Trade USD/CAD (default: true) |
 | `gbpusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `eurusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `gbpjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
-| `usdjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
+| `usdcad_units` | Position size in OANDA units (10000 = 0.1 lot) |
 
 > **Note:** Gold (XAU/USD) remains disabled — backtesting showed negative
 > expectancy across all range buckets.
@@ -79,13 +82,18 @@ within 1 hour (4 M15 bars), the order is cancelled.
 
 ### Filters applied
 
-| Filter | GBP/USD | EUR/USD | GBP/JPY | USD/JPY |
+| Filter | GBP/USD | EUR/USD | GBP/JPY | USD/CAD |
 |---|---|---|---|---|
-| Min range (R8/S0 → P4) | 41 pips | 41 pips | 86 pips | 50 pips |
-| Session | London + NY | London + NY | London + NY | Tokyo + London + NY |
+| Min range (R8/S0 → P4) | 41 pips | 41 pips | 86 pips | notch: skip 40–51 pips |
+| Session | London + NY | London + NY | London + NY | London + NY |
 | Channel (LR z-score) | ≥ 0.3 std devs | ≥ 0.3 std devs | ≥ 0.3 std devs | ≥ 0.3 std devs |
 | Fibonacci confluence | 5% tolerance | 5% tolerance | 5% tolerance | 5% tolerance |
-| Pivot source | 4H candle | 4H candle | 4H candle | Daily candle |
+| Pivot source | 4H candle | 4H candle | 4H candle | 4H candle |
+
+All positions are also subject to a **24h time-stop** (v1.7.0): any trade still
+open 24 hours after fill is force-closed at market. The strategy is intraday, so
+this only ever affects a trade that has stalled — it is the guardrail that keeps
+the bot from drifting into multi-day holds.
 
 ---
 
@@ -101,10 +109,10 @@ Based on 1-year backtest (OANDA data, wick-based detection, all filters applied)
 | GBP/USD | 1 year | 8 | ~8 |
 | EUR/USD | 1 year | 12 | ~12 |
 | GBP/JPY | 1 year | ~14 | ~13 |
-| USD/JPY | 3 years | 20 | ~7 |
-| **Total** | | | **~40** |
+| USD/CAD | 3 years | ~44 | ~15 |
+| **Total** | | | **~48** |
 
-Approximately **three trades per month** across all instruments.
+Approximately **four trades per month** across all instruments.
 
 ### Backtest results (filtered)
 
@@ -113,9 +121,17 @@ Approximately **three trades per month** across all instruments.
 | GBP/USD | 8 | 62.5% | +83 pips | −50 pips | +33 pips/trade | 4H |
 | EUR/USD | 12 | 50.0% | +61 pips | −56 pips | +3 pips/trade | 4H |
 | GBP/JPY | 13 | 54.0% | +96 pips | −53 pips | +34 pips/trade | 4H |
-| USD/JPY | 20 | **85.0%** | +218 pips | −139 pips | **+164 pips/trade** | Daily |
+| USD/CAD | ~44 | ~57% | — | — | +21 pips/trade | 4H |
 
-*USD/JPY figures are from a 3-year backtest. GBP/JPY pip value ≈ $0.70/pip at 0.1 lot.*
+*GBP/JPY pip value ≈ $0.70/pip at 0.1 lot. All figures are pre-cost midpoint
+backtests and now reflect the v1.7.0 hold cap.*
+
+> **Removed (v1.7.0):** USD/JPY previously showed "85% win / +164 pips/trade" here.
+> That was an artifact of the old backtester holding trades indefinitely — winning
+> trades held a median 2.4 days. Under a realistic 1-day hold cap the edge collapses
+> to ~40% win / +47 pips, and on 4H pivots USD/JPY loses outright. It (and the
+> near-inactive EUR/JPY) were removed. See
+> [[projects/forex/decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact|ADR 0002]].
 
 ### Expected annual P&L by position size
 

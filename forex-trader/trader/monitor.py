@@ -4,15 +4,30 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.6.6"
+VERSION = "1.7.1"
 
 import traceback
+from datetime import datetime, timezone
 import oanda_client
 import notifier
 import logger
 import state as _state
 import config
 import scanner
+
+
+def _hours_since_fill(st: dict) -> float | None:
+    """Elapsed wall-clock hours since the position was filled, or None if unknown."""
+    ft = st.get('fill_time')
+    if not ft:
+        return None
+    try:
+        filled = datetime.fromisoformat(str(ft))
+    except ValueError:
+        return None
+    if filled.tzinfo is None:
+        filled = filled.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - filled).total_seconds() / 3600.0
 
 
 def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
@@ -41,6 +56,20 @@ def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
     except Exception as e:
         logger.log_event('price_fetch_error', instrument=instrument_key, detail=str(e))
         return 'error', st
+
+    # ── Time-stop: force-close if held longer than MAX_HOLD_HOURS ─────────────
+    held = _hours_since_fill(st)
+    if held is not None and held >= config.MAX_HOLD_HOURS:
+        try:
+            oanda_client.close_trade(st['trade_id'])
+        except Exception as e:
+            # Market may be closed (weekend) — retry on the next monitor cycle.
+            logger.log_event('time_stop_close_error', instrument=instrument_key,
+                             detail=str(e))
+            return 'open', st
+        logger.log_event('time_stop', instrument=instrument_key,
+                         price=current_price, hours_held=round(held, 1))
+        return _handle_close(st, current_price, 'time_stop', instrument_key)
 
     # ── TP1 not yet hit ──────────────────────────────────────────────────────
     if not st['tp1_hit']:
@@ -123,8 +152,14 @@ def _handle_close(st: dict, close_price: float, reason: str,
             leg1_pips = -leg1_pips
         leg2_pips = leg1_pips
 
+    # Leg 1 is the partial (closed at TP1); leg 2 is the remainder. Pass their
+    # unit sizes so the logger can size-weight the total instead of double-counting.
+    cfg           = config.INSTRUMENTS[instrument_key]
+    units_leg1    = cfg['units_partial']
+    units_leg2    = cfg['units_total'] - cfg['units_partial']
     total_pips = logger.log_trade_close(st, instrument_key, close_price,
-                                        reason, leg1_pips, leg2_pips)
+                                        reason, leg1_pips, leg2_pips,
+                                        units_leg1, units_leg2)
     notifier.trade_closed(instrument_key, st['direction'], close_price,
                           reason, total_pips, entry)
     logger.log_event('trade_closed', instrument=instrument_key,

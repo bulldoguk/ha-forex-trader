@@ -30,8 +30,15 @@ def log_event(event: str, **kwargs):
 
 
 def log_trade_close(state: dict, instrument: str, close_price: float,
-                    close_reason: str, leg1_pnl_pips: float, leg2_pnl_pips: float):
-    total = leg1_pnl_pips + leg2_pnl_pips
+                    close_reason: str, leg1_pnl_pips: float, leg2_pnl_pips: float,
+                    units_leg1: int, units_leg2: int):
+    # Size-weighted position P&L. leg*_pnl_pips are per-unit price moves; each leg
+    # is only part of the position, so the position result is the size-weighted
+    # blend — NOT leg1 + leg2. Summing double-counted (both legs on an SL-only exit
+    # move the same distance → reported 2× the real loss, e.g. Trade 5 −86.4 vs the
+    # true −43.2). The weighted figure reconciles with dollar/NAV. Fixed v1.7.1.
+    total_units = units_leg1 + units_leg2
+    total = (leg1_pnl_pips * units_leg1 + leg2_pnl_pips * units_leg2) / total_units
     record = {
         'date':             _now(),
         'instrument':       instrument,
