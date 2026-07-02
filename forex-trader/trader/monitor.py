@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.7.1"
+VERSION = "1.7.3"
 
 import traceback
 from datetime import datetime, timezone

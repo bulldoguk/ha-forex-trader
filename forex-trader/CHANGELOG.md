@@ -3,6 +3,13 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.7.3 (2026-07-02)
+
+### Fixed
+- **`monitor.VERSION` sync.** v1.7.2 shipped the dashboard fix but left
+  `monitor.VERSION="1.7.1"`, so the startup-log version-confirm signal read stale.
+  Bumped to match the release. No functional change from v1.7.2.
+
 ## v1.7.2 (2026-07-02)
 
 ### Fixed
