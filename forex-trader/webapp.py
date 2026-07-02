@@ -3,7 +3,7 @@ Flask status dashboard — served via HA Ingress on port 5000.
 Shows live instrument state, account summary, and trade history.
 """
 
-import sys, os, json
+import sys, os, json, time
 from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template_string, request
 
@@ -192,13 +192,29 @@ _HTML = """<!DOCTYPE html>
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+# Short-lived cache for the account summary so the 30s dashboard auto-refresh
+# doesn't fire a fresh (worst-case ~95s, retry-laden) OANDA call on every load.
+# On failure we keep serving the last good value instead of a blank page.
+_ACCOUNT_CACHE = {'data': {}, 'ts': 0.0}
+_ACCOUNT_TTL = 20  # seconds
+
+
+def _cached_account_summary() -> dict:
+    now = time.monotonic()
+    if now - _ACCOUNT_CACHE['ts'] < _ACCOUNT_TTL:
+        return _ACCOUNT_CACHE['data']
+    try:
+        _ACCOUNT_CACHE['data'] = oanda_client.get_account_summary()
+        _ACCOUNT_CACHE['ts'] = now
+    except Exception:
+        pass  # keep last good value; refresh again after TTL
+    return _ACCOUNT_CACHE['data']
+
+
 @app.route('/')
 def dashboard():
     st = _state.load()
-    try:
-        account = oanda_client.get_account_summary()
-    except Exception:
-        account = {}
+    account = _cached_account_summary()
 
     trades = _read_trades(40)
 
@@ -247,4 +263,7 @@ def _read_trades(n: int) -> list:
 
 
 def run_server():
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    # threaded=True: a slow/hung OANDA fetch on one request must not block the
+    # whole dashboard (single-threaded Werkzeug was the "check supervisor logs"
+    # ingress-timeout cause).
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)

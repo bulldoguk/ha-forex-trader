@@ -3,6 +3,19 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.7.2 (2026-07-02)
+
+### Fixed
+- **Dashboard "check the supervisor logs" ingress timeout.** The status dashboard
+  ran on Flask's single-threaded dev server (`app.run()` with no `threaded=True`)
+  and did a synchronous `oanda_client.get_account_summary()` on every render. When
+  OANDA was slow/unreachable, that call blocks the one worker for up to ~95s (retry
+  ladder `[5,15,30]` × 15s timeout), so the browser load *and* the 30s auto-refresh
+  queued behind it and timed out at HA's ingress layer — the failed loads never even
+  reached Werkzeug (no `GET /` in the access log). Fixes: (1) `threaded=True` so a
+  hung fetch can't freeze the whole server; (2) a 20s account-summary cache that
+  serves the last good value on failure instead of blanking/hanging the page.
+
 ## v1.7.1 (2026-07-01)
 
 ### Fixed
