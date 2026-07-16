@@ -3,6 +3,21 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.8.1 (2026-07-16)
+
+### Added
+- **Dashboard "Locked P&L" on the TP1 leg.** When TP1 partial-closes 50% of a
+  position, that half's profit is *realized* — it leaves OANDA's `unrealizedPL`
+  (the "Open P&L" tile) and rolls into Balance, and a TP1 partial is not a
+  `trade_close` so it never showed in the Recent-trades table either. Net effect:
+  a hit TP1 looked like the locked-in profit had vanished.
+  - `_handle_tp1` now reads the realized P/L straight from the partial-close fill
+    (`orderFillTransaction.pl`) and persists it as `tp1_realized_pl` (plus
+    `leg1_pips`) in state; both are also logged on the `tp1_hit` event.
+  - The filled instrument card shows a **Locked P&L** field ($ and pips) once TP1
+    is hit. Purely additive — capture is guarded so a missing `pl` field never
+    breaks TP1 execution.
+
 ## v1.8.0 (2026-07-16)
 
 ### Added

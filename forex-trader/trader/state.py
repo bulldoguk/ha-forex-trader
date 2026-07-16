@@ -23,6 +23,8 @@ _EMPTY_INSTRUMENT = {
     'signal_time':       None,
     'fill_time':         None,
     'tp1_hit':           False,
+    'tp1_realized_pl':   None,   # $ realized on the TP1 partial (dashboard "Locked P&L")
+    'leg1_pips':         None,   # pips gained on the TP1 leg
     'bars_since_signal': 0,
 }
 

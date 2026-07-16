@@ -136,6 +136,16 @@ _HTML = """<!DOCTYPE html>
           {{ '✓ Yes' if st.tp1_hit else 'No' }}
         </span>
       </div>
+      {% if st.tp1_hit %}
+      {% set rpl = st.get('tp1_realized_pl') %}
+      <div class="field">
+        <span class="field-label">Locked P&amp;L</span>
+        <span class="field-value {{ 'profit' if (rpl or 0)|float >= 0 else 'loss' }}">
+          {% if rpl is not none %}{{ '+' if rpl|float >= 0 else '−' }}${{ "%.2f"|format(rpl|float|abs) }}{% else %}—{% endif %}
+          {% if st.get('leg1_pips') is not none %}<span style="color:#888;font-size:0.75rem"> ({{ "%+.1f"|format(st.leg1_pips|float) }}p)</span>{% endif %}
+        </span>
+      </div>
+      {% endif %}
       {% endif %}
 
       {% if st.fill_time %}

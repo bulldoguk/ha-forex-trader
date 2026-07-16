@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.8.0"
+VERSION = "1.8.1"
 
 import traceback
 from datetime import datetime, timezone
@@ -92,11 +92,24 @@ def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
     return 'open', st
 
 
+def _fill_pl(close_resp: dict) -> float | None:
+    """Realized account-currency P/L booked by a (partial) close fill.
+
+    OANDA's trade-close response carries the realized P/L of the fill in
+    orderFillTransaction.pl. Returns None if the field is absent/unparseable so a
+    display-only miss never breaks TP1 execution.
+    """
+    try:
+        return float(close_resp['orderFillTransaction']['pl'])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _handle_tp1(st: dict, price: float, trade: dict,
                 instrument_key: str) -> tuple[str, dict]:
     units_partial = config.INSTRUMENTS[instrument_key]['units_partial']
     try:
-        oanda_client.partial_close(st['trade_id'], units_partial)
+        close_resp = oanda_client.partial_close(st['trade_id'], units_partial)
         oanda_client.modify_sl(st['trade_id'], st['sl_after_tp1'])
     except Exception as e:
         logger.log_event('tp1_action_error', instrument=instrument_key, detail=str(e))
@@ -108,11 +121,19 @@ def _handle_tp1(st: dict, price: float, trade: dict,
         else price - st['entry_price'],
         instrument_key,
     )
-    st['tp1_hit']    = True
-    st['sl_current'] = st['sl_after_tp1']
+    # Dollars realized on the TP1 leg — the amount that leaves unrealizedPL and
+    # lands in Balance. Persist it (and the leg pips) so the dashboard can show
+    # "Locked P&L" instead of the partial looking like it vanished.
+    realized_pl = _fill_pl(close_resp)
+
+    st['tp1_hit']         = True
+    st['sl_current']      = st['sl_after_tp1']
+    st['tp1_realized_pl'] = realized_pl
+    st['leg1_pips']       = leg1_pips
 
     logger.log_event('tp1_hit', instrument=instrument_key, price=price,
-                     leg1_pips=leg1_pips, new_sl=st['sl_after_tp1'])
+                     leg1_pips=leg1_pips, realized_pl=realized_pl,
+                     new_sl=st['sl_after_tp1'])
     notifier.tp1_hit(instrument_key, st['direction'], price,
                      units_partial, st['sl_after_tp1'], st['tp2'], leg1_pips)
     return 'tp1_hit', st
