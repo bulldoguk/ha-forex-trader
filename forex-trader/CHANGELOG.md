@@ -3,6 +3,28 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.8.0 (2026-07-16)
+
+### Added
+- **OANDA connection-health watchdog + alerting.** On 2026-07-15 the practice API
+  token was revoked mid-session; every OANDA call returned 401 for ~17h but the
+  per-instrument handlers (`_handle_pending`, `monitor.check_and_act`) swallow
+  exceptions to stay resilient, so **no alert was ever sent** — an open GBP/USD
+  position went unmanaged until it was noticed by hand.
+  - `oanda_client` now tracks connection health at the HTTP layer
+    (`get_health()`: `consecutive_failures`, `last_status`, `last_success`,
+    `seconds_since_success`) so it captures every failure regardless of which
+    caller catches the exception.
+  - The daemon calls `_check_connection_health()` every loop iteration. Once
+    failures hit `CONN_FAILURE_ALERT_THRESHOLD` (default 3 — ~one failed monitor
+    cycle) it sends a `[TRADER] ERROR in oanda_auth` (401/403) or
+    `oanda_connection` email. `notifier.error`'s existing 1h per-context cooldown
+    caps it at one email/hour while degraded; it self-clears on recovery.
+  - New retained MQTT topic `forex_trader/connection` (`connection_ok`,
+    `seconds_since_success`, …) so HA can drive a binary_sensor + a staleness
+    automation that catches hangs the daemon can't self-report.
+- No change to trading logic, entries/exits, or the 24h time-stop.
+
 ## v1.7.3 (2026-07-02)
 
 ### Fixed

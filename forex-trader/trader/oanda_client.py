@@ -21,6 +21,43 @@ _RETRY_EXCEPTIONS  = (
 _RETRY_DELAYS = [5, 15, 30]   # seconds between attempts
 
 
+# ── Connection health ─────────────────────────────────────────────────────────
+# Tracked at the HTTP layer so it captures EVERY OANDA failure regardless of which
+# caller swallows the exception — the per-instrument handlers in trader.py and
+# monitor.py catch-and-continue to stay resilient, which is exactly why a revoked
+# token went unnoticed for ~17h on 2026-07-15. The daemon consults get_health()
+# once per loop to alert on sustained auth/connection loss.
+_health = {
+    'last_success': None,          # datetime (UTC) of the last 2xx OANDA call
+    'consecutive_failures': 0,     # OANDA calls failed in a row since last success
+    'last_status': None,           # last HTTP status seen (int), or None on transport error
+    'last_error': None,            # short description of the most recent failure
+}
+
+
+def _record_success(status: int) -> None:
+    _health['last_success'] = datetime.now(timezone.utc)
+    _health['consecutive_failures'] = 0
+    _health['last_status'] = status
+    _health['last_error'] = None
+
+
+def _record_failure(status, detail: str) -> None:
+    _health['consecutive_failures'] += 1
+    _health['last_status'] = status
+    _health['last_error'] = detail
+
+
+def get_health() -> dict:
+    """Snapshot of OANDA connection health for the daemon's watchdog."""
+    h = dict(_health)
+    last = h['last_success']
+    h['seconds_since_success'] = (
+        (datetime.now(timezone.utc) - last).total_seconds() if last else None
+    )
+    return h
+
+
 def _request(method: str, path: str, **kwargs) -> dict:
     url = f'{_BASE}{path}'
     last_exc = None
@@ -36,10 +73,16 @@ def _request(method: str, path: str, **kwargs) -> dict:
             break
     else:
         if last_exc:
+            _record_failure(None, f'connection error after retries: {method.upper()} {path}')
             raise requests.exceptions.ConnectionError(
                 f'OANDA request failed after retries: {method.upper()} {path}'
             )
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        _record_failure(r.status_code, f'HTTP {r.status_code}: {exc}')
+        raise
+    _record_success(r.status_code)
     return r.json()
 
 

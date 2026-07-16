@@ -154,6 +154,42 @@ def _handle_filled(state: dict, key: str) -> dict:
     return state
 
 
+def _check_connection_health() -> None:
+    """Watchdog: alert + flag MQTT when OANDA calls are failing repeatedly.
+
+    Runs once per loop iteration. The per-instrument handlers deliberately swallow
+    OANDA exceptions to stay resilient, so without this a revoked token or network
+    outage fails silently (as it did 2026-07-15: the GBP/USD position went
+    unmanaged ~17h with no alert). notifier.error's 1h per-context cooldown keeps
+    this to a single email per hour while degraded.
+    """
+    h = oanda_client.get_health()
+    degraded = h['consecutive_failures'] >= config.CONN_FAILURE_ALERT_THRESHOLD
+    mqtt_publisher.publish_connection(not degraded, h)
+    if not degraded:
+        return
+
+    is_auth = h['last_status'] in (401, 403)
+    context = 'oanda_auth' if is_auth else 'oanda_connection'
+    hint = (
+        "The OANDA API token is being rejected (401/403) — it has most likely been "
+        "revoked or the practice account was reset. Fix: update the add-on's "
+        "oanda_token option and restart the add-on."
+        if is_auth else
+        "OANDA is unreachable or returning errors. Check network / OANDA status — "
+        "the daemon keeps retrying and will recover on its own once calls succeed."
+    )
+    detail = (
+        f"{h['consecutive_failures']} consecutive OANDA call failures — the daemon "
+        f"cannot see prices or manage open positions.\n\n"
+        f"Last HTTP status:      {h['last_status']}\n"
+        f"Last error:            {h['last_error']}\n"
+        f"Last successful call:  {h['last_success']}\n\n"
+        f"{hint}"
+    )
+    notifier.error(context, detail)
+
+
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def run():
@@ -178,6 +214,7 @@ def run():
 
     mqtt_publisher.publish_account(acct)
     mqtt_publisher.publish_status(state)
+    mqtt_publisher.publish_connection(True, oanda_client.get_health())
     notifier.startup(list(config.INSTRUMENTS.keys()))
 
     while True:
@@ -195,6 +232,7 @@ def run():
                 except Exception:
                     pass
                 mqtt_publisher.publish_status(state)
+                _check_connection_health()
                 time.sleep(config.MONITOR_INTERVAL)
                 continue
 
@@ -229,6 +267,7 @@ def run():
             except Exception:
                 pass
             mqtt_publisher.publish_status(state)
+            _check_connection_health()
 
         except KeyboardInterrupt:
             print('\nDaemon stopped.')

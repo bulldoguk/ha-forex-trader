@@ -115,6 +115,14 @@ INSTRUMENTS = {
 # ── Position limits ──────────────────────────────────────────────────────────
 MAX_CONCURRENT_POSITIONS = 2   # discard new signals when this many are pending/filled
 
+# ── Connection-health watchdog ────────────────────────────────────────────────
+# Alert (one email per hour, via notifier's per-context cooldown) once OANDA calls
+# have failed this many times in a row. Catches token revocation / auth loss /
+# network outage that the per-instrument handlers otherwise swallow silently — the
+# 2026-07-15 failure mode. A sustained outage produces several failures per loop,
+# so 3 fires on roughly the first fully-failed monitor cycle (~60s).
+CONN_FAILURE_ALERT_THRESHOLD = int(os.environ.get('CONN_FAILURE_ALERT_THRESHOLD', 3))
+
 # ── Timing ───────────────────────────────────────────────────────────────────
 SCAN_DELAY_SECS  = 60    # seconds after M15 close before scanning
 MONITOR_INTERVAL = 60    # seconds between position checks

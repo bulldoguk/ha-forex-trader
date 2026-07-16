@@ -18,6 +18,7 @@ _pass = os.environ.get('MQTT_PASSWORD', '')
 
 TOPIC_ACCOUNT = 'forex_trader/account'
 TOPIC_STATUS  = 'forex_trader/status'
+TOPIC_CONN    = 'forex_trader/connection'
 
 
 def _get_client():
@@ -84,3 +85,23 @@ def publish_account(account: dict) -> None:
         'openTradeCount': int(account.get('openTradeCount', 0)),
     }
     _publish(TOPIC_ACCOUNT, payload)
+
+
+def publish_connection(ok: bool, health: dict) -> None:
+    """Publish OANDA connection health so HA can alert on auth/connection loss.
+
+    Retained topic: an HA MQTT binary_sensor can watch `connection_ok`, and a
+    `seconds_since_success` staleness automation catches hangs the daemon itself
+    can't self-report.
+    """
+    last = health.get('last_success')
+    secs = health.get('seconds_since_success')
+    payload = {
+        'connection_ok':         bool(ok),
+        'consecutive_failures':  int(health.get('consecutive_failures', 0)),
+        'last_status':           health.get('last_status'),
+        'last_error':            health.get('last_error'),
+        'last_success':          last.isoformat() if last else None,
+        'seconds_since_success': round(secs) if secs is not None else None,
+    }
+    _publish(TOPIC_CONN, payload)
