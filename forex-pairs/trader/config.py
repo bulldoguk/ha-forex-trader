@@ -28,7 +28,9 @@ PIP_SIZE   = 0.0001
 # NOTE: EUR_GBP is a 5% / 20:1 instrument, NOT 50:1. 5,000 units costs ~$287 of
 # margin, not the ~$115 originally assumed here. Corrected 2026-07-30 after txn 129
 # was rejected for INSUFFICIENT_MARGIN — see decisions/0003-margin-budget-small-account.md.
-UNITS      = int(os.environ.get('EURGBP_UNITS', '5000'))   # ~$287 margin at 20:1
+# Sized 2,600 (not 5,000) so the research doc's documented worst case (-331 bps)
+# caps at ~10% of a $1,000 account instead of 19% — see decisions/0004.
+UNITS      = int(os.environ.get('EURGBP_UNITS', '2600'))   # ~$149 margin at 20:1
 
 # ── Margin ────────────────────────────────────────────────────────────────────
 # Fallback if the live per-instrument lookup fails; assume the expensive rate.

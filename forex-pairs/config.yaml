@@ -1,5 +1,5 @@
 name: "Forex Pairs (EUR/GBP)"
-version: "0.2.0"
+version: "0.2.1"
 slug: "forex_pairs"
 description: "EUR/GBP daily z-score mean-reversion — diversifier running alongside the MR Forex Trader"
 url: "https://github.com/bulldoguk/ha-forex-trader"
@@ -20,7 +20,7 @@ options:
   mqtt_port: 1883
   mqtt_user: ""
   mqtt_password: ""
-  eurgbp_units: 5000
+  eurgbp_units: 2600
   margin_safety_factor: 1.15
   dry_run: true
 

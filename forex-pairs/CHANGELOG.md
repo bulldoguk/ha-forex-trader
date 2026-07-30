@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.1 (2026-07-30)
+
+### Changed
+- **Default `eurgbp_units` 5,000 → 2,600.** The validated strategy doc instructs
+  *"position sizing must survive a −330 bps trade — size off this, not off the
+  average."* At 5,000 units the documented worst case (−331 bps) was **$190, i.e.
+  19% of a $1,000 account**; at 2,600 it is ~$99 (9.9%). Nominal z=4 stop drops
+  from 7.2% to 3.7% of the account, and peak concurrent margin (MR + pairs) from
+  82% to 68%.
+
+  Cost: expected annual contribution roughly halves (~$123 → ~$64). Accepted
+  because the pairs bot is a **diversifier, not a return driver** — and at ~5
+  trades/yr it would take ~19 trades (~4 years) for its live record to reach
+  statistical significance, so its sizing can never be justified by its own live
+  results and should stay conservative. See ADR
+  [[projects/forex/decisions/0004-step-up-strategy|0004]].
+
 ## 0.2.0 (2026-07-30)
 
 Margin pre-check on the shared account — see ADR
