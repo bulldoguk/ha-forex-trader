@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 (2026-07-30)
+
+### Fixed
+- **`pairs_trader.VERSION` was left at `0.2.0` when config.yaml went to 0.2.1.** The
+  startup log line is the only thing that proves the *running image* is new (add-on
+  options like `units` are stored per-install and prove nothing about the image), so
+  a knowingly-stale VERSION string breaks the exact check that catches a
+  publish-before-update race. Now bumped in lockstep with config.yaml, matching the
+  `monitor.VERSION` rule the MR add-on already follows.
+
 ## 0.2.1 (2026-07-30)
 
 ### Changed

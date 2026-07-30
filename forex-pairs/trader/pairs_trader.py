@@ -23,7 +23,7 @@ import notifier
 import logger
 import mqtt_publisher as mqtt
 
-VERSION = '0.2.0'
+VERSION = '0.2.2'
 
 
 def _pips(entry: float, close: float, direction: str) -> float:

@@ -1,5 +1,5 @@
 name: "Forex Pairs (EUR/GBP)"
-version: "0.2.1"
+version: "0.2.2"
 slug: "forex_pairs"
 description: "EUR/GBP daily z-score mean-reversion — diversifier running alongside the MR Forex Trader"
 url: "https://github.com/bulldoguk/ha-forex-trader"
