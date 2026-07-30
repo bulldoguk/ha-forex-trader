@@ -3,6 +3,30 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.9.1 (2026-07-30)
+
+### Fixed
+- **A trade that opened and closed inside one scan gap vanished from the journal.**
+  `_handle_pending` only consulted `get_open_trades`, so a limit order that filled
+  and then hit its stop before the next M15 scan looked identical to "never filled"
+  — it fell through to the TTL branch and was logged as *"price moved away"*, with
+  the real P&L never recorded. This is the class of gap behind the 2026-07-16
+  missing-trades reconciliation, and it happened live the same day this shipped:
+  order 154 filled 10:46:00 and stopped out 10:49:47 (−$7.60), between two scans.
+
+  A vanished order is now resolved from its actual OANDA `state` via the new
+  `oanda_client.get_order()`:
+  - `FILLED` + trade `CLOSED` → journaled retroactively through
+    `monitor.settle_closed_trade()` (same size-weighted pip maths as any close),
+    logged as `missed_fill_and_close`.
+  - `FILLED` + trade still open → adopted as `filled`; the fill event was simply missed.
+  - `CANCELLED` → `order_rejected_by_broker` (INSUFFICIENT_MARGIN is the observed case).
+  - lookup failure → state untouched, TTL path still resolves it. Guessing here
+    would risk inventing or losing a trade.
+
+  v1.9.0 introduced the broker-cancel branch but assumed *every* vanished order was
+  a rejection, which would have mislabelled this stop-out as a margin problem.
+
 ## v1.9.0 (2026-07-30)
 
 Margin budgeting for the small account — see ADR

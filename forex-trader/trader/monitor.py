@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.9.0"
+VERSION = "1.9.1"
 
 import traceback
 from datetime import datetime, timezone
@@ -186,3 +186,16 @@ def _handle_close(st: dict, close_price: float, reason: str,
     logger.log_event('trade_closed', instrument=instrument_key,
                      price=close_price, reason=reason, total_pips=total_pips)
     return 'closed', None
+
+
+def settle_closed_trade(st: dict, close_price: float, reason: str,
+                        instrument_key: str) -> None:
+    """
+    Journal a trade the daemon never saw open or close.
+
+    Reuses the normal close path so a retroactively-discovered trade is recorded
+    with the same size-weighted pip maths as any other (see log_trade_close on why
+    summing legs double-counts). Called by trader._resolve_vanished_order when an
+    order filled and closed inside a single scan gap.
+    """
+    _handle_close(st, close_price, reason, instrument_key)

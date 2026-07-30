@@ -121,6 +121,81 @@ def _handle_idle(state: dict, key: str) -> dict:
     return state
 
 
+def _resolve_vanished_order(state: dict, key: str) -> dict:
+    """
+    The order is no longer pending and no position is open. Two very different
+    causes, which the daemon used to conflate as "price moved away / TTL expired":
+
+      FILLED    — it filled AND closed inside a single scan gap (a fast SL or TP).
+                  The trade is real and must be journaled, or it silently vanishes
+                  from the track record — the class of gap behind the 2026-07-16
+                  missing-trades reconciliation. Seen live on 2026-07-30: order 154
+                  filled at 10:46:00 and stopped out at 10:49:47, between two scans.
+      CANCELLED — the broker rejected or expired it. INSUFFICIENT_MARGIN is the one
+                  we have actually seen (txn 82, 2026-07-01).
+
+    On any lookup failure we leave the state untouched so the TTL path can still
+    resolve it — guessing here would risk inventing or losing a trade.
+    """
+    st = state[key]
+    try:
+        order = oanda_client.get_order(st['order_id'])
+    except Exception:
+        logger.log_event('order_state_lookup_failed', instrument=key,
+                         order_id=st['order_id'], detail=traceback.format_exc())
+        return state
+
+    order_state = order.get('state')
+
+    if order_state == 'CANCELLED':
+        logger.log_event('order_rejected_by_broker', instrument=key,
+                         order_id=st['order_id'],
+                         detail=order.get('cancellingTransactionID', 'no reason given'))
+        notifier.order_cancelled(
+            key, 'Order cancelled by the broker before filling — check free margin')
+        _state.reset_instrument(state, key)
+        return state
+
+    if order_state != 'FILLED':
+        return state   # PENDING/TRIGGERED — let the normal paths handle it
+
+    # Filled. Recover the real fill price, then settle from the trade record.
+    trade_id = order.get('tradeOpenedID')
+    if not trade_id:
+        return state
+    try:
+        trade = oanda_client.get_trade(trade_id)
+    except Exception:
+        logger.log_event('order_state_lookup_failed', instrument=key,
+                         order_id=st['order_id'], detail=traceback.format_exc())
+        return state
+
+    st['trade_id']    = trade_id
+    st['entry_price'] = float(trade.get('price', st['entry_price']))
+    st['fill_time']   = trade.get('openTime', str(datetime.now(timezone.utc)))
+
+    if trade.get('state') != 'CLOSED':
+        # Filled and still open — we simply missed the fill event. Adopt it.
+        st['status'] = 'filled'
+        _state.save(state)
+        logger.log_event('order_filled', instrument=key, trade_id=trade_id,
+                         fill_price=st['entry_price'],
+                         detail='fill detected late via order state')
+        return state
+
+    # Filled AND already closed inside the scan gap — journal it retroactively.
+    close_price = float(trade.get('averageClosePrice', st['entry_price']))
+    realized    = float(trade.get('realizedPL', 0.0))
+    st['status'] = 'filled'
+    logger.log_event('missed_fill_and_close', instrument=key, trade_id=trade_id,
+                     entry=st['entry_price'], close=close_price,
+                     realized_pl=realized,
+                     detail='opened and closed between scans — journaled retroactively')
+    monitor.settle_closed_trade(st, close_price, 'sl_or_fast_exit', key)
+    _state.reset_instrument(state, key)
+    return state
+
+
 def _handle_pending(state: dict, key: str) -> dict:
     st = state[key]
     st['bars_since_signal'] = st.get('bars_since_signal', 0) + 1
@@ -158,13 +233,7 @@ def _handle_pending(state: dict, key: str) -> dict:
         pending_ids = None
 
     if pending_ids is not None and st['order_id'] not in pending_ids:
-        logger.log_event('order_rejected_by_broker', instrument=key,
-                         order_id=st['order_id'],
-                         detail='order gone with no fill — likely INSUFFICIENT_MARGIN')
-        notifier.order_cancelled(
-            key, 'Order cancelled by broker before fill — check free margin')
-        _state.reset_instrument(state, key)
-        return state
+        return _resolve_vanished_order(state, key)
 
     if st['bars_since_signal'] >= config.LIMIT_ORDER_TTL:
         try:

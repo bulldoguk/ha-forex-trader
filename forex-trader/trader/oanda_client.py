@@ -225,6 +225,16 @@ def cancel_order(order_id: str) -> dict:
     return _put(f'/v3/accounts/{config.OANDA_ACCOUNT}/orders/{order_id}/cancel', {})
 
 
+def get_order(order_id: str) -> dict:
+    """Fetch a single order by id — including terminal ones.
+
+    `state` is the useful field: FILLED (with `tradeOpenedID`) vs CANCELLED. This
+    is what distinguishes "filled and closed between two scans" from "rejected by
+    the broker"; `get_pending_orders` alone cannot tell them apart.
+    """
+    return _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/orders/{order_id}')['order']
+
+
 def get_pending_orders(instrument: str = None) -> list[dict]:
     data = _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/pendingOrders')
     orders = data.get('orders', [])
