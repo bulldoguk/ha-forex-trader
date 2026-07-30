@@ -15,6 +15,7 @@ export MQTT_PASSWORD=$(bashio::config 'mqtt_password')
 # ── Strategy tunables ─────────────────────────────────────────────────────────
 export EURGBP_UNITS=$(bashio::config 'eurgbp_units')
 export PAIRS_DRY_RUN=$(bashio::config 'dry_run')
+export MARGIN_SAFETY_FACTOR=$(bashio::config 'margin_safety_factor')
 
 # ── Persistent storage (separate dir from the MR bot) ─────────────────────────
 export LOG_DIR=/share/forex_pairs/logs

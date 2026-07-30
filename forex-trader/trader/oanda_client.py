@@ -135,6 +135,61 @@ def get_account_summary() -> dict:
     return _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/summary')['account']
 
 
+# ── Margin ───────────────────────────────────────────────────────────────────
+# OANDA margin rates are NOT uniform: GBP-based instruments (and EUR_GBP) are
+# 5% / 20:1, while EUR_USD and USD_CAD are 2% / 50:1. One GBP position at 10,000
+# units costs ~$669 — 67% of a $1,000 account — which is what silently killed a
+# GBP_JPY limit order on 2026-07-01 (txn 82) and an EUR_GBP entry on 2026-07-16
+# (txn 129). Rates are read live and cached, with config.MARGIN_RATES as fallback
+# so a failed lookup can never silently under-estimate the requirement.
+
+_margin_rate_cache: dict[str, float] = {}
+
+
+def get_margin_rate(instrument: str) -> float:
+    """Live margin rate for an instrument (e.g. 0.05), cached for the process."""
+    if instrument in _margin_rate_cache:
+        return _margin_rate_cache[instrument]
+    try:
+        data = _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/instruments',
+                    {'instruments': instrument})
+        rate = float(data['instruments'][0]['marginRate'])
+    except Exception:
+        rate = config.MARGIN_RATES.get(instrument, config.MARGIN_RATE_FALLBACK)
+    _margin_rate_cache[instrument] = rate
+    return rate
+
+
+def _base_to_usd(instrument: str) -> float:
+    """Conversion rate from an instrument's BASE currency into USD."""
+    base = instrument.split('_')[0]
+    if base == 'USD':
+        return 1.0
+    return get_current_price(f'{base}_USD')
+
+
+def margin_required(instrument: str, units: int) -> float:
+    """Estimated margin in account currency (USD) to hold `units` of `instrument`."""
+    return abs(units) * _base_to_usd(instrument) * get_margin_rate(instrument)
+
+
+def check_margin(instrument: str, units: int) -> tuple[bool, float, float]:
+    """
+    Return (ok, required, available).
+
+    `ok` applies config.MARGIN_SAFETY_FACTOR on top of the raw requirement so we
+    never open a position that leaves the account with no room to breathe. Any
+    failure to determine either figure returns ok=False — refusing to trade on
+    unknown margin state is the safe direction.
+    """
+    try:
+        required  = margin_required(instrument, units)
+        available = float(get_account_summary()['marginAvailable'])
+    except Exception:
+        return False, 0.0, 0.0
+    return (required * config.MARGIN_SAFETY_FACTOR) <= available, required, available
+
+
 # ── Orders ───────────────────────────────────────────────────────────────────
 
 def place_limit_order(direction: str, price: float, units: int,

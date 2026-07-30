@@ -3,6 +3,45 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.9.0 (2026-07-30)
+
+Margin budgeting for the small account — see ADR
+[[projects/forex/decisions/0003-margin-budget-small-account|0003]].
+
+### Changed
+- **`MAX_CONCURRENT_POSITIONS` 2 → 1** (new add-on option `max_concurrent_positions`,
+  env `MAX_CONCURRENT_POSITIONS`). The 2-position cap was arithmetically unreachable
+  on a $1,000 account with any GBP pair involved (2 × GBP @10k = $1,339 = 134% of the
+  account) and had **never once been exercised** — 0 concurrent-position overlaps
+  across 12 live trades. Its only observed effect was letting a second signal kill
+  the first at fill time (txn 82, 2026-07-01).
+- **GBP_USD and GBP_JPY default sizing 10,000 → 8,000 units.** OANDA charges **5%
+  margin (20:1)** on GBP-based instruments but only 2% (50:1) on EUR_USD/USD_CAD —
+  a 2.5× difference the old "~$330/position" estimate missed entirely. 10k GBP units
+  cost **$669 (67% of $1,000)**; 8k costs $536. Peak concurrent demand (MR + pairs
+  bot) drops from $1,627 (163%) to $823 (82%).
+
+### Added
+- **Margin pre-check before placing a limit order** (`oanda_client.check_margin`).
+  OANDA only validates margin at *fill* time, so an unaffordable order previously sat
+  pending and was then cancelled by the broker. Now the requirement is computed from
+  the live per-instrument `marginRate` × notional and compared against
+  `marginAvailable` with `MARGIN_SAFETY_FACTOR` (default 1.25) applied. Insufficient
+  margin logs `signal_deferred_margin` and leaves the instrument idle to re-scan next
+  bar — the signal is deferred, not lost.
+- `oanda_client.get_margin_rate()` / `margin_required()` — live per-instrument rates,
+  cached per process, with `config.MARGIN_RATES` fallbacks that assume the
+  **expensive** 5% rate for unknown instruments so a failed lookup can never
+  under-estimate a requirement. `check_margin` returns `ok=False` if either figure
+  cannot be established.
+
+### Fixed
+- **Broker-cancelled orders were mis-reported as "price moved away".** A pending
+  order that vanished without a fill fell through to the TTL branch and was logged as
+  `order_cancelled / TTL expired`. That is exactly how the txn 82 margin rejection
+  stayed invisible for a month. Now detected via `get_pending_orders` and logged as
+  `order_rejected_by_broker` with a distinct notification.
+
 ## v1.8.1 (2026-07-16)
 
 ### Added

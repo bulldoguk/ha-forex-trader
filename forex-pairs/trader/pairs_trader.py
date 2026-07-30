@@ -23,7 +23,7 @@ import notifier
 import logger
 import mqtt_publisher as mqtt
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 
 
 def _pips(entry: float, close: float, direction: str) -> float:
@@ -91,6 +91,20 @@ def act_on_new_bar(state: dict, closes) -> dict:
 
 
 def _open_position(state: dict, d: dict) -> dict:
+    # Margin pre-check on the shared account. Without it an unaffordable entry is
+    # rejected by OANDA (txn 129) and surfaces only as an error email; with it the
+    # skip is logged as a countable deferral. The signal is deferred, not lost —
+    # the next daily bar re-decides and re-enters while |z| still qualifies, which
+    # is exactly how the 07-16 block became the 07-20 fill.
+    ok, required, available = oa.check_margin(config.INSTRUMENT, config.UNITS)
+    if not ok:
+        logger.log_event('signal_deferred_margin', direction=d['direction'],
+                         z=round(d['z'], 2),
+                         margin_required=round(required, 2),
+                         margin_available=round(available, 2),
+                         safety_factor=config.MARGIN_SAFETY_FACTOR)
+        return state
+
     resp = oa.place_market_order(d['direction'], config.UNITS, d['stop'], config.INSTRUMENT)
     fill = resp.get('orderFillTransaction')
     if not fill or 'tradeOpened' not in fill:

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0 (2026-07-30)
+
+Margin pre-check on the shared account — see ADR
+[[projects/forex/decisions/0003-margin-budget-small-account|0003]].
+
+### Added
+- **Margin pre-check before entering** (`oanda_client.check_margin`, new option
+  `margin_safety_factor`, default 1.15). Entry txn 129 (2026-07-16) was rejected by
+  OANDA for `INSUFFICIENT_MARGIN` while the MR bot held a GBP_USD position, surfacing
+  only as an error email. Insufficient margin now logs `signal_deferred_margin` with
+  the required/available figures, making contention a countable statistic. The signal
+  is deferred, not lost: the next daily bar re-decides and re-enters while |z| still
+  qualifies — which is how the 07-16 block became the 07-20 fill (+78.5 bps).
+- `get_margin_rate()` — live per-instrument rate, cached, falling back to the
+  expensive 5% rate rather than a cheap guess.
+
+### Fixed
+- **Corrected the margin assumption in `config.py`.** The comment claimed 5,000 units
+  of EUR_GBP was "~$115 margin at 50:1". EUR_GBP is a **5% / 20:1** instrument —
+  5,000 units is **~$287**, 2.5× the documented figure and 29% of a $1,000 account.
+  This wrong number is why the bot was believed to be margin-light on the shared
+  account.
+
 ## 0.1.0
 
 Initial release — EUR/GBP daily z-score mean-reversion, the first complementary

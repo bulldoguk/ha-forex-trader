@@ -67,6 +67,52 @@ def get_account_summary() -> dict:
     return _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/summary')['account']
 
 
+# ── Margin ────────────────────────────────────────────────────────────────────
+# EUR_GBP is 5% / 20:1 — 5,000 units is ~$287, not the ~$115 originally assumed.
+# On the shared account that is enough to collide with the MR bot's positions
+# (txn 129, 2026-07-16, rejected INSUFFICIENT_MARGIN).
+
+_margin_rate: dict[str, float] = {}
+
+
+def get_margin_rate(instrument: str) -> float:
+    """Live margin rate for an instrument (e.g. 0.05), cached for the process."""
+    if instrument in _margin_rate:
+        return _margin_rate[instrument]
+    try:
+        data = _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/instruments',
+                    {'instruments': instrument})
+        rate = float(data['instruments'][0]['marginRate'])
+    except Exception:
+        rate = config.MARGIN_RATE_FALLBACK
+    _margin_rate[instrument] = rate
+    return rate
+
+
+def _base_to_usd(instrument: str) -> float:
+    """Conversion rate from the instrument's BASE currency into USD."""
+    base = instrument.split('_')[0]
+    if base == 'USD':
+        return 1.0
+    df = get_candles(f'{base}_USD', 'S5', 2)
+    return float(df.iloc[-1]['close'])
+
+
+def check_margin(instrument: str, units: int) -> tuple[bool, float, float]:
+    """
+    Return (ok, required, available) with config.MARGIN_SAFETY_FACTOR applied.
+
+    Any failure to establish either figure returns ok=False — declining to trade
+    on unknown margin state is the safe direction.
+    """
+    try:
+        required  = abs(units) * _base_to_usd(instrument) * get_margin_rate(instrument)
+        available = float(get_account_summary()['marginAvailable'])
+    except Exception:
+        return False, 0.0, 0.0
+    return (required * config.MARGIN_SAFETY_FACTOR) <= available, required, available
+
+
 # ── Orders / trades ───────────────────────────────────────────────────────────
 
 def place_market_order(direction: str, units: int, sl_price: float,

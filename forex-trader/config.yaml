@@ -1,5 +1,5 @@
 name: "Forex Trader"
-version: "1.8.1"
+version: "1.9.0"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/CAD"
 url: "https://github.com/bulldoguk/ha-forex-trader"
@@ -28,10 +28,12 @@ options:
   eurusd_enabled: true
   gbpjpy_enabled: true
   usdcad_enabled: true
-  gbpusd_units: 10000
+  gbpusd_units: 8000
   eurusd_units: 10000
-  gbpjpy_units: 10000
+  gbpjpy_units: 8000
   usdcad_units: 10000
+  max_concurrent_positions: 1
+  margin_safety_factor: 1.25
 
 schema:
   oanda_token: str
@@ -52,6 +54,8 @@ schema:
   eurusd_units: int
   gbpjpy_units: int
   usdcad_units: int
+  max_concurrent_positions: int(1,4)
+  margin_safety_factor: float
 
 map:
   - share:rw

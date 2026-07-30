@@ -25,7 +25,18 @@ NOTIFY_TO      = os.environ.get('NOTIFY_EMAIL', '')
 # MR account, so keep margin small to avoid contention (see ADR margin note).
 INSTRUMENT = 'EUR_GBP'
 PIP_SIZE   = 0.0001
-UNITS      = int(os.environ.get('EURGBP_UNITS', '5000'))   # ~$115 margin at 50:1
+# NOTE: EUR_GBP is a 5% / 20:1 instrument, NOT 50:1. 5,000 units costs ~$287 of
+# margin, not the ~$115 originally assumed here. Corrected 2026-07-30 after txn 129
+# was rejected for INSUFFICIENT_MARGIN — see decisions/0003-margin-budget-small-account.md.
+UNITS      = int(os.environ.get('EURGBP_UNITS', '5000'))   # ~$287 margin at 20:1
+
+# ── Margin ────────────────────────────────────────────────────────────────────
+# Fallback if the live per-instrument lookup fails; assume the expensive rate.
+MARGIN_RATE_FALLBACK = 0.05
+# Require this multiple of the raw requirement to be free before entering. The
+# pairs bot holds for ~29 days, so it is the account's continuous margin consumer;
+# a modest buffer keeps it from taking the last dollar the MR bot needs.
+MARGIN_SAFETY_FACTOR = float(os.environ.get('MARGIN_SAFETY_FACTOR', 1.15))
 
 # DRY_RUN: compute and log/notify the decision but place NO orders. Use for an
 # initial observation period before arming.

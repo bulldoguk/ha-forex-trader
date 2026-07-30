@@ -22,12 +22,17 @@ export EURUSD_UNITS=$(bashio::config 'eurusd_units')
 export GBPJPY_UNITS=$(bashio::config 'gbpjpy_units')
 export USDCAD_UNITS=$(bashio::config 'usdcad_units')
 
+# ── Margin budget (see decisions/0003-margin-budget-small-account.md) ─────────
+export MAX_CONCURRENT_POSITIONS=$(bashio::config 'max_concurrent_positions')
+export MARGIN_SAFETY_FACTOR=$(bashio::config 'margin_safety_factor')
+
 # ── Persistent storage (survives container restarts) ──────────────────────────
 export LOG_DIR=/share/forex_trader/logs
 mkdir -p "${LOG_DIR}"
 
 bashio::log.info "Starting Forex Trader — OANDA ${OANDA_ENV}"
 bashio::log.info "Instruments: GBPUSD=${GBPUSD_ENABLED} EURUSD=${EURUSD_ENABLED} GBPJPY=${GBPJPY_ENABLED} USDCAD=${USDCAD_ENABLED}"
+bashio::log.info "Margin budget: max_concurrent=${MAX_CONCURRENT_POSITIONS} safety_factor=${MARGIN_SAFETY_FACTOR}"
 
 # Force Python to flush stdout immediately — without this, print() output
 # is buffered in Docker and never appears in the HA log viewer

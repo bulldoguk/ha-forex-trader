@@ -70,6 +70,22 @@ def _handle_idle(state: dict, key: str) -> dict:
                      entry=sig.entry_price, tp1=sig.tp1, tp2=sig.tp2,
                      sl=sig.sl_initial, range=entry_range)
 
+    # Margin pre-check. OANDA only validates margin at FILL time, so without this
+    # an unaffordable order sits pending and is then cancelled by the broker —
+    # which the daemon used to mis-report as "price moved away / TTL expired"
+    # (that is how txn 82 stayed invisible). Checking up front turns a silent
+    # rejection into a logged, countable deferral. The signal is not lost: the
+    # instrument stays idle and re-scans on the next M15 close.
+    ok, required, available = oanda_client.check_margin(
+        instr_cfg['oanda'], instr_cfg['units_total'])
+    if not ok:
+        logger.log_event('signal_deferred_margin', instrument=key,
+                         direction=sig.direction, entry=sig.entry_price,
+                         margin_required=round(required, 2),
+                         margin_available=round(available, 2),
+                         safety_factor=config.MARGIN_SAFETY_FACTOR)
+        return state
+
     try:
         resp = oanda_client.place_limit_order(
             sig.direction, sig.entry_price,
@@ -129,6 +145,25 @@ def _handle_pending(state: dict, key: str) -> dict:
         notifier.order_filled(key, st['direction'], fill_price,
                               config.INSTRUMENTS[key]['units_total'],
                               st['sl_initial'], st['tp1'], st['tp2'])
+        return state
+
+    # The order vanished at the broker without opening a trade → OANDA cancelled it
+    # (INSUFFICIENT_MARGIN is the one we've actually seen — txn 82 on 2026-07-01).
+    # Previously this fell through to the TTL branch below and was reported as
+    # "price moved away", hiding a margin problem as ordinary non-fill.
+    try:
+        pending_ids = {o['id'] for o in
+                       oanda_client.get_pending_orders(instrument=oanda_instr)}
+    except Exception:
+        pending_ids = None
+
+    if pending_ids is not None and st['order_id'] not in pending_ids:
+        logger.log_event('order_rejected_by_broker', instrument=key,
+                         order_id=st['order_id'],
+                         detail='order gone with no fill — likely INSUFFICIENT_MARGIN')
+        notifier.order_cancelled(
+            key, 'Order cancelled by broker before fill — check free margin')
+        _state.reset_instrument(state, key)
         return state
 
     if st['bars_since_signal'] >= config.LIMIT_ORDER_TTL:
