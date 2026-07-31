@@ -3,6 +3,50 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.9.2 (2026-07-31)
+
+### Fixed
+- **Every trade's P&L was measured from the signal price, not the fill.**
+  `_handle_pending` read the real `fill_price` off the OANDA trade, logged it,
+  notified with it — and then never wrote it to `st['entry_price']`. Only the
+  late-fill recovery path (`_reconcile_order_state`) did. So the price the
+  journal, TP1 leg and close all measured against was the theoretical signal
+  entry we never traded at, and every figure was wrong by the slippage.
+  EUR/USD on 2026-07-30 filled 5.9 pips off signal and journaled **−22.4 pips
+  against a true −16.5**.
+
+- **A trade that hit TP1 and then exited was journaled at roughly half its real
+  result.** Three compounding faults in `_handle_close`:
+  1. Leg 2 was measured from `st['tp1']` instead of the entry, discarding
+     everything the runner earned up to TP1 — a profitable runner could be
+     logged as a loss.
+  2. `close_price` came from OANDA's `averageClosePrice`, which is the
+     size-weighted average of *every* closing fill **including the TP1
+     partial** — not the runner's exit. New `_runner_close_price()` backs the
+     runner's own fill out of it using the TP1 execution price (now persisted
+     as `tp1_price_actual`). Broker-close path only; the TP2 and time-stop
+     paths already pass a genuine leg-2 price and are left alone.
+  3. Leg 1 was re-derived from the theoretical `tp1` level even though
+     `_handle_tp1` had already measured and stored the true `leg1_pips` from
+     the actual fill. It now reuses the stored value.
+
+  Live case — USD/CAD trade 163 (2026-07-31): filled 1.39985, TP1 partial at
+  1.4029 (+30.5 pips, $10.48 realized), runner taken by the trailed stop.
+  Journaled **+11.6 pips**; the true size-weighted result is **+23.1**, and the
+  recovered runner exit (1.40142) lands on the 1.4015 trailed stop, confirming
+  the exit that `reason=CLOSED` alone did not identify.
+
+- Sign handling for leg P&L consolidated into `_leg_pips()`. `scanner.pips()`
+  returns an unsigned magnitude and each call site re-derived the sign by hand;
+  the leg-1 branch had it inverted (`entry - tp1` for a long), which only ever
+  looked correct because the magnitude was absolute.
+
+### Impact on historical data
+`trades_summary.csv` rows written before this release understate any trade that
+reached TP1, and mis-measure every trade by its entry slippage. The t-statistic
+feeding the ADR-0004 ~56-trade evidence gate should be recomputed from
+re-derived figures, not the stored ones.
+
 ## v1.9.1 (2026-07-30)
 
 ### Fixed

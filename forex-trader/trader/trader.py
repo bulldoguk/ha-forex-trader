@@ -211,7 +211,13 @@ def _handle_pending(state: dict, key: str) -> dict:
         trade_id  = trade['id']
         fill_price = float(trade.get('price', st['entry_price']))
 
+        # Overwrite the signal's theoretical entry with the price we actually
+        # filled at. Every downstream P&L figure (TP1 leg, close, journal) is
+        # measured from st['entry_price'] — leaving the signal price here made
+        # all of them wrong by the slippage. EUR/USD 2026-07-30 filled 5.9 pips
+        # off signal and journaled -22.4 pips against a true -16.5.
         st.update({'status': 'filled', 'trade_id': trade_id,
+                   'entry_price': fill_price,
                    'fill_time': str(datetime.now(timezone.utc))})
         _state.save(state)
 

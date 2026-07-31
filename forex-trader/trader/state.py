@@ -25,6 +25,8 @@ _EMPTY_INSTRUMENT = {
     'tp1_hit':           False,
     'tp1_realized_pl':   None,   # $ realized on the TP1 partial (dashboard "Locked P&L")
     'leg1_pips':         None,   # pips gained on the TP1 leg
+    'tp1_price_actual':  None,   # price the TP1 partial actually executed at — needed
+                                 # to back the runner's exit out of averageClosePrice
     'bars_since_signal': 0,
 }
 
