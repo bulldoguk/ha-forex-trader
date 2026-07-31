@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.9.2"
+VERSION = "1.9.3"
 
 import traceback
 from datetime import datetime, timezone
@@ -106,6 +106,21 @@ def _fill_pl(close_resp: dict) -> float | None:
         return None
 
 
+def _fill_price(close_resp: dict) -> float | None:
+    """Price a (partial) close fill actually executed at.
+
+    The daemon decides to take TP1 off a polled mid price, but the partial closes
+    at the broker's bid/ask a moment later. Measuring leg 1 against the polled
+    price overstates it by the spread — the 2026-07-31 USD/CAD TP1 logged 30.5
+    pips ($10.87 implied) against $10.48 actually realized. Returns None if the
+    field is absent so a miss falls back to the polled price rather than failing.
+    """
+    try:
+        return float(close_resp['orderFillTransaction']['price'])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _handle_tp1(st: dict, price: float, trade: dict,
                 instrument_key: str) -> tuple[str, dict]:
     units_partial = config.INSTRUMENTS[instrument_key]['units_partial']
@@ -117,8 +132,12 @@ def _handle_tp1(st: dict, price: float, trade: dict,
         notifier.error(f'TP1 execution ({instrument_key})', traceback.format_exc())
         return 'error', st
 
-    leg1_pips = _leg_pips(st['entry_price'], price,
-                          st['direction'] == 'short', instrument_key)
+    # Measure the leg against what the partial actually filled at, not the polled
+    # price that triggered it. Falls back to the polled price if OANDA's response
+    # omits it.
+    fill_price = _fill_price(close_resp) or price
+    leg1_pips  = _leg_pips(st['entry_price'], fill_price,
+                           st['direction'] == 'short', instrument_key)
     # Dollars realized on the TP1 leg — the amount that leaves unrealizedPL and
     # lands in Balance. Persist it (and the leg pips) so the dashboard can show
     # "Locked P&L" instead of the partial looking like it vanished.
@@ -128,12 +147,12 @@ def _handle_tp1(st: dict, price: float, trade: dict,
     st['sl_current']       = st['sl_after_tp1']
     st['tp1_realized_pl']  = realized_pl
     st['leg1_pips']        = leg1_pips
-    st['tp1_price_actual'] = price
+    st['tp1_price_actual'] = fill_price
 
-    logger.log_event('tp1_hit', instrument=instrument_key, price=price,
-                     leg1_pips=leg1_pips, realized_pl=realized_pl,
-                     new_sl=st['sl_after_tp1'])
-    notifier.tp1_hit(instrument_key, st['direction'], price,
+    logger.log_event('tp1_hit', instrument=instrument_key, price=fill_price,
+                     trigger_price=price, leg1_pips=leg1_pips,
+                     realized_pl=realized_pl, new_sl=st['sl_after_tp1'])
+    notifier.tp1_hit(instrument_key, st['direction'], fill_price,
                      units_partial, st['sl_after_tp1'], st['tp2'], leg1_pips)
     return 'tp1_hit', st
 

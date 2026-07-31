@@ -3,6 +3,22 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.9.3 (2026-07-31)
+
+### Fixed
+- **The TP1 leg was measured against the polled price, not the fill.** The daemon
+  decides to take TP1 off `get_current_price()`, but the partial executes at the
+  broker's bid/ask a moment later. `_handle_tp1` measured `leg1_pips` (and, as of
+  v1.9.2, `tp1_price_actual`) against the trigger price, overstating the leg by
+  the spread: USD/CAD on 2026-07-31 logged 30.5 pips — $10.87 implied — against
+  **$10.48 actually realized**. New `_fill_price()` reads
+  `orderFillTransaction.price` from the close response, the same place `_fill_pl()`
+  already reads realized P&L, falling back to the polled price if absent.
+  The `tp1_hit` event now logs both (`price` = fill, `trigger_price` = polled).
+
+  Same class as the v1.9.2 fixes and the last remaining place a journal figure was
+  derived from a price we did not trade at.
+
 ## v1.9.2 (2026-07-31)
 
 ### Fixed
