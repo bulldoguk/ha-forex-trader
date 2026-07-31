@@ -3,6 +3,42 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.10.0 (2026-07-31)
+
+### Changed
+- **Time-stop widened 24h → 48h** (`MAX_HOLD_HOURS` 24 → 48; backtester
+  `MAX_HOLD_BARS` 96 → 192), and exposed as a new **`max_hold_hours`** add-on option
+  so it can be retuned without a rebuild.
+
+  TP1/TP2 scale off the setup's entry range (TP2 sits at ≈1× range) but the cap was a
+  flat 24h, so wide-range setups could not physically reach their targets before the
+  clock cut them. Live trade 125 (GBP/USD, 131.6-pip range) hit TP1 at 23h and was
+  force-closed an hour later with TP2 still 47 pips away.
+
+  Backtest — 4 pairs, 5 years, paired sample, `timestop_study.py`:
+
+  | Policy | exp (pips) | vs 24h | paired t |
+  |---|---|---|---|
+  | flat 12h | 6.08 | −1.08 | −0.76 |
+  | flat 24h (was) | 7.16 | — | — |
+  | **flat 48h** | **8.38** | **+1.22** | **+2.01** |
+  | flat 72h / no cap | 8.38 | +1.22 | +2.01 |
+
+  48h, 72h and no-cap score identically on the filtered set — 48h captures the entire
+  available gain, so keeping a hard cap costs nothing. ADR-0002's purpose (preventing
+  the unlimited-hold artifact) is preserved.
+
+  **Rejected in the same study:** uncapping or resetting the clock after TP1. Despite
+  the trailed stop being in profit on 1521/1521 setups, it is mildly *negative*
+  (−0.16 pips/trade) and the worst policy on wide setups — after TP1 the runner drifts
+  back to `sl_after_tp1` more often than it reaches TP2. Range-scaled windows were also
+  rejected as no better than a flat 48h with an extra fitted constant.
+
+  ⚠️ Confidence is modest: t≈2.0 on a ~+1.2 pip effect, best-of-ten policies tested,
+  cap binds on only 2–6% of trades, mid-candle simulation. A calibration tweak to
+  revisit as the live record grows, not a validated edge. See
+  `docs/research_timestop_tuning.md` and the ADR-0002 amendment.
+
 ## v1.9.3 (2026-07-31)
 
 ### Fixed

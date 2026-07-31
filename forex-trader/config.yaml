@@ -1,5 +1,5 @@
 name: "Forex Trader"
-version: "1.9.3"
+version: "1.10.0"
 slug: "forex_trader"
 description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/CAD"
 url: "https://github.com/bulldoguk/ha-forex-trader"
@@ -34,6 +34,7 @@ options:
   usdcad_units: 10000
   max_concurrent_positions: 1
   margin_safety_factor: 1.25
+  max_hold_hours: 48
 
 schema:
   oanda_token: str
@@ -56,6 +57,7 @@ schema:
   usdcad_units: int
   max_concurrent_positions: int(1,4)
   margin_safety_factor: float
+  max_hold_hours: int(1,168)
 
 map:
   - share:rw

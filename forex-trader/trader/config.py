@@ -163,7 +163,11 @@ LIMIT_ORDER_TTL  = 4     # M15 bars before unfilled limit is cancelled
 # close within a day. Capping the hold keeps live behaviour honest and prevents
 # the multi-day "wait for reversion" drift that flattered the USDJPY daily-pivot
 # backtest (see decisions/0002). 24h leaves genuine intraday trades untouched.
-MAX_HOLD_HOURS   = int(os.environ.get('MAX_HOLD_HOURS', 24))
+# 48h since v1.10.0 — see docs/research_timestop_tuning.md and ADR-0002. The 24h
+# cap was cutting wide-range setups before they could reach targets that scale off
+# the entry range (TP2 sits at ~1x range). 48h captures the whole available gain:
+# in the filtered backtest 48h, 72h and no-cap score identically.
+MAX_HOLD_HOURS   = int(os.environ.get('MAX_HOLD_HOURS', 48))
 
 # ── Candle history for filters ────────────────────────────────────────────────
 M15_LOOKBACK   = 200
