@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.0 (2026-09-03)
+
+### Fixed
+- **Intermittent `401 Unauthorized` from OANDA no longer aborts a cycle.** `401` is
+  now retried on its own short schedule (`_RETRY_AUTH_DELAYS = [1, 3]`), counted
+  separately from the existing 5xx/transport budget so neither can exhaust the other.
+
+  This bot and the MR bot share one OANDA token by design (ADR-0001), and OANDA
+  rejects one of two *concurrent* requests on the same token with 401 rather than
+  429. On 2026-09-03 both add-ons were firing at :00 and the pairs bot 401'd at 09:00
+  and 11:00 while succeeding at 10:00 — and the MR bot 401'd on a single instrument
+  at the same instants. The token was valid throughout. See
+  [[projects/forex/decisions/0005-shared-token-401-retry|ADR-0005]].
+
+  A genuinely revoked token still raises after 2 retries (~4s), so this does not mask
+  a real auth failure.
+
+### Changed
+- **The hourly cycle is now anchored to the wall clock at `:20`** instead of sleeping
+  a flat `PAIRS_CHECK_INTERVAL`, and the minute is exposed as the new
+  **`check_offset_mins`** add-on option (default `20`).
+
+  A flat `time.sleep(3600)` drifts by each loop's own duration, so the bot could not
+  be held clear of the MR bot's quarter-hour scans (:00/:15/:30/:45). Anchoring keeps
+  it in a fixed slot indefinitely, which removes the collision rather than just
+  retrying through it.
+
 ## 0.2.2 (2026-07-30)
 
 ### Fixed

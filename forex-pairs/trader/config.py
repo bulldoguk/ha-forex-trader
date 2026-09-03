@@ -49,6 +49,11 @@ DRY_RUN    = os.environ.get('PAIRS_DRY_RUN', 'false').lower() == 'true'
 # candle. We still wake hourly to reconcile broker state (detect a stop-out) and
 # refresh HA sensors.
 CHECK_INTERVAL_SECS = int(os.environ.get('PAIRS_CHECK_INTERVAL', '3600'))
+# Minutes past the hour to run the cycle on. The MR bot scans the quarter hours
+# (:00/:15/:30/:45); :20 keeps this bot clear of all four, so the two add-ons stop
+# issuing concurrent requests on the shared OANDA token. Both used to fire at :00,
+# which produced intermittent 401s on 2026-09-03.
+CHECK_OFFSET_MINS   = int(os.environ.get('PAIRS_CHECK_OFFSET_MINS', '20'))
 DAILY_LOOKBACK      = 160   # completed daily candles to fetch (>= window + buffer)
 
 # ── Logging ───────────────────────────────────────────────────────────────────

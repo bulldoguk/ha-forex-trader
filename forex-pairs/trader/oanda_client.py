@@ -17,24 +17,53 @@ _RETRY_EXCEPTIONS = (requests.exceptions.SSLError, requests.exceptions.ReadTimeo
                      requests.exceptions.ConnectionError)
 _RETRY_DELAYS = [5, 15, 30]
 
+# 401 gets its own short retry schedule. This bot and the MR bot share one OANDA
+# token, and OANDA rejects one of two concurrent requests on the same token with
+# 401 rather than 429 — observed 2026-09-03, when both add-ons fired together on
+# the hour and one of the pair 401'd while the other succeeded. The retries are
+# few and brief, so a genuinely revoked token still surfaces as an error instead
+# of being masked; see decisions/0005-shared-token-401-retry.md.
+_RETRY_AUTH_STATUSES = {401}
+_RETRY_AUTH_DELAYS   = [1, 3]
+
 
 def _request(method: str, path: str, **kwargs) -> dict:
+    """
+    Issue an OANDA request, retrying transient failures.
+
+    Two independent retry budgets: transport errors and 5xx back off on
+    _RETRY_DELAYS, transient 401s on the much shorter _RETRY_AUTH_DELAYS. They
+    are counted separately so a slow 5xx sequence cannot exhaust the auth budget
+    (or vice versa). Anything else — including a 401 that survives its retries —
+    falls through to raise_for_status().
+    """
     url = f'{_BASE}{path}'
-    last_exc = None
-    for delay in [0] + _RETRY_DELAYS:
-        if delay:
-            time.sleep(delay)
+    r = None
+    transport_failed = False
+    retries = {'server': 0, 'auth': 0}
+
+    while True:
         try:
             r = getattr(requests, method)(url, headers=_HEADERS, timeout=15, **kwargs)
+            transport_failed = False
         except _RETRY_EXCEPTIONS:
-            last_exc = True
-            continue
-        if r.status_code not in _RETRY_STATUSES:
-            break
-    else:
-        if last_exc:
-            raise requests.exceptions.ConnectionError(
-                f'OANDA request failed after retries: {method.upper()} {path}')
+            r, transport_failed = None, True
+            kind, delays = 'server', _RETRY_DELAYS
+        else:
+            if r.status_code in _RETRY_STATUSES:
+                kind, delays = 'server', _RETRY_DELAYS
+            elif r.status_code in _RETRY_AUTH_STATUSES:
+                kind, delays = 'auth', _RETRY_AUTH_DELAYS
+            else:
+                break                       # success, or a non-retryable error
+        if retries[kind] >= len(delays):
+            break                           # this class is out of retries
+        time.sleep(delays[retries[kind]])
+        retries[kind] += 1
+
+    if transport_failed:
+        raise requests.exceptions.ConnectionError(
+            f'OANDA request failed after retries: {method.upper()} {path}')
     r.raise_for_status()
     return r.json()
 

@@ -23,7 +23,7 @@ import notifier
 import logger
 import mqtt_publisher as mqtt
 
-VERSION = '0.2.2'
+VERSION = '0.3.0'
 
 
 def _pips(entry: float, close: float, direction: str) -> float:
@@ -145,6 +145,23 @@ def _close_position(state: dict, reason: str) -> dict:
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
+def _sleep_to_next_cycle() -> None:
+    """
+    Sleep until the next CHECK_INTERVAL boundary offset by CHECK_OFFSET_MINS.
+
+    Aligned to the wall clock rather than sleeping a flat interval: a plain
+    time.sleep(3600) lets the wake time drift with each loop's own duration, so
+    the bot cannot be held clear of the MR bot's quarter-hour scans. Anchoring to
+    the boundary keeps it in a fixed slot indefinitely.
+    """
+    now      = datetime.now(timezone.utc).timestamp()
+    interval = config.CHECK_INTERVAL_SECS
+    offset   = config.CHECK_OFFSET_MINS * 60
+    next_run = ((now - offset) // interval + 1) * interval + offset
+    time.sleep(max(1.0, next_run - now))
+
+
+
 def run():
     print(f'[{datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}] Pairs daemon '
           f'starting — {config.INSTRUMENT}  VERSION={VERSION}  '
@@ -184,7 +201,7 @@ def run():
         except Exception:
             logger.log_event('daemon_error', detail=traceback.format_exc())
             notifier.error('daemon_loop', traceback.format_exc())
-        time.sleep(config.CHECK_INTERVAL_SECS)
+        _sleep_to_next_cycle()
 
 
 def show_status():
