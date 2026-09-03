@@ -3,6 +3,25 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.11.0 (2026-09-03)
+
+### Fixed
+- **Intermittent `401 Unauthorized` from OANDA no longer fails a scan.** `401` is now
+  retried on its own short schedule (`_RETRY_AUTH_DELAYS = [1, 3]`), counted
+  separately from the existing 5xx/transport budget so neither can exhaust the other.
+
+  This bot shares one OANDA token with the pairs add-on (ADR-0001), and OANDA rejects
+  one of two *concurrent* requests on the same token with 401 rather than 429. On
+  2026-09-03, with both add-ons firing at :00, single instruments 401'd mid-scan
+  (GBPJPY at 09:01, GBPUSD at 11:01) while the rest of the same scan succeeded on the
+  same token. These failures were invisible because only the pairs add-on alerts on
+  error — see tracker #0177. Full analysis in
+  [[projects/forex/decisions/0005-shared-token-401-retry|ADR-0005]].
+
+  Health tracking is preserved: a transient 401 that recovers does **not** increment
+  `consecutive_failures`, while a persistent one does, so the watchdog still fires on
+  a genuinely revoked token (which now raises after ~4s of retries).
+
 ## v1.10.0 (2026-07-31)
 
 ### Changed
