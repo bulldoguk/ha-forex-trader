@@ -1,19 +1,24 @@
-# Forex Trader — Home Assistant Add-on
+# Forex Trader — Home Assistant Add-ons
 
-Automated pivot mean-reversion trading daemon for GBP/USD, EUR/USD, GBP/JPY, and USD/CAD.
-(USD/JPY and EUR/JPY were removed in v1.7.0 — see [[projects/forex/decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact|ADR 0002]].)
-Runs as a Home Assistant add-on with a built-in status dashboard. Strategy detail in
-[[projects/forex/docs/strategy_pivot_meanreversion|docs/strategy_pivot_meanreversion.md]];
-project overview in [[projects/forex/CLAUDE|CLAUDE.md]].
+Automated forex trading against an OANDA account, packaged as Home Assistant add-ons. This repository holds two:
+
+| Add-on | Strategy | Instruments |
+|---|---|---|
+| **Forex Trader** (`forex-trader/`) | Intraday pivot mean-reversion, with a built-in status dashboard | GBP/USD, EUR/USD, GBP/JPY, USD/CAD |
+| **Forex Pairs** (`forex-pairs/`) | Daily z-score mean-reversion, run as an uncorrelated diversifier alongside the main bot | EUR/GBP |
+
+USD/JPY and EUR/JPY were removed from Forex Trader in v1.7.0: their backtest edge turned out to be an artifact of holding trades indefinitely (see the v1.7.0 entry in the [changelog](forex-trader/CHANGELOG.md)).
+
+Both add-ons run prebuilt multi-arch images (`amd64`, `aarch64`) published to GHCR by GitHub Actions on every push to `main`.
 
 ## Installation
 
 1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**
 2. Click the three-dot menu (⋮) → **Repositories**
 3. Add: `https://github.com/bulldoguk/ha-forex-trader`
-4. Find **Forex Trader** in the store and click **Install**
+4. Find **Forex Trader** (and optionally **Forex Pairs (EUR/GBP)**) in the store and click **Install**
 
-## Configuration
+## Configuration — Forex Trader
 
 | Option | Description |
 |---|---|
@@ -23,6 +28,7 @@ project overview in [[projects/forex/CLAUDE|CLAUDE.md]].
 | `gmail_from` | Gmail address to send notifications from |
 | `gmail_app_password` | Gmail app password (16 characters, spaces optional) |
 | `notify_email` | Email address to receive notifications |
+| `mqtt_host` / `mqtt_port` / `mqtt_user` / `mqtt_password` | MQTT broker for publishing status to HA (default `core-mosquitto:1883`) |
 | `gbpusd_enabled` | Trade GBP/USD (default: true) |
 | `eurusd_enabled` | Trade EUR/USD (default: true) |
 | `gbpjpy_enabled` | Trade GBP/JPY (default: true) |
@@ -31,6 +37,22 @@ project overview in [[projects/forex/CLAUDE|CLAUDE.md]].
 | `eurusd_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `gbpjpy_units` | Position size in OANDA units (10000 = 0.1 lot) |
 | `usdcad_units` | Position size in OANDA units (10000 = 0.1 lot) |
+| `max_concurrent_positions` | Cap on simultaneously open trades, to limit margin pressure (1–4, default 1) |
+| `margin_safety_factor` | Headroom required over the broker's margin requirement before a new order is placed (default 1.25) |
+| `max_hold_hours` | Time-stop: force-close any trade still open this long after fill (1–168, default 48) |
+
+## Configuration — Forex Pairs (EUR/GBP)
+
+Shares the OANDA, Gmail and MQTT options above, plus:
+
+| Option | Description |
+|---|---|
+| `eurgbp_units` | Position size in OANDA units |
+| `margin_safety_factor` | As above (default 1.15) |
+| `check_offset_mins` | Minute past each hour to run the check (default 20), keeping it clear of Forex Trader's quarter-hour scans |
+| `dry_run` | Log signals without placing orders (default **true**) |
+
+Both bots can share one OANDA account and token. See [`forex-pairs/DEPLOY.md`](forex-pairs/DEPLOY.md) for setup.
 
 > **Note:** Gold (XAU/USD) remains disabled — backtesting showed negative
 > expectancy across all range buckets.
@@ -47,10 +69,10 @@ across add-on restarts and updates.
 
 ## Updating
 
-When the strategy code changes:
-1. Run `sync_addon.sh` from the forex project root to copy trader/ and backtester/
-2. Commit and push to GitHub
-3. In HA: Settings → Add-ons → Forex Trader → **Update**
+1. Bump `version` in the add-on's `config.yaml` (and `monitor.VERSION` in `trader/monitor.py` to match — the startup log line `monitor.VERSION=X` is how you confirm the new image is actually running).
+2. Push to `main`. GitHub Actions builds and publishes the images to GHCR.
+3. **Wait for the Actions run to finish** before updating. Updating early silently reinstalls the old image while HA records the new version number.
+4. In HA: Settings → Add-ons → Add-on Store → ⋮ → **Check for updates**, then **Update** the add-on. Afterwards, confirm *Start on boot* and *Watchdog* are still enabled.
 
 ---
 
@@ -90,10 +112,9 @@ within 1 hour (4 M15 bars), the order is cancelled.
 | Fibonacci confluence | 5% tolerance | 5% tolerance | 5% tolerance | 5% tolerance |
 | Pivot source | 4H candle | 4H candle | 4H candle | 4H candle |
 
-All positions are also subject to a **24h time-stop** (v1.7.0): any trade still
-open 24 hours after fill is force-closed at market. The strategy is intraday, so
-this only ever affects a trade that has stalled — it is the guardrail that keeps
-the bot from drifting into multi-day holds.
+All positions are also subject to a **time-stop**: any trade still open `max_hold_hours` after fill (default 48) is force-closed at market. It was introduced at 24h in v1.7.0 and widened to 48h in v1.10.0 after a tuning study. The strategy is intraday, so this only affects a trade that has stalled — it is the guardrail that keeps the bot from drifting into multi-day holds.
+
+At most `max_concurrent_positions` trades are open at once, and a new order is only placed if free margin covers the requirement times `margin_safety_factor`.
 
 ---
 
@@ -101,6 +122,8 @@ the bot from drifting into multi-day holds.
 
 Based on 1-year backtest (OANDA data, wick-based detection, all filters applied).
 *v1.1.0 figures — corrected after fixing the 4H boundary detection bug.*
+
+> ⚠️ **These figures have not been re-run since several later fixes:** the v1.7.1 pip double-count fix (older pip totals summed both half-size legs, roughly doubling the move), the v1.9.2/1.9.3 fill-price and TP1 journaling fixes, and the v1.10.0 change from a 24h to a 48h time-stop. Treat them as indicative only.
 
 ### Signal frequency
 
@@ -124,14 +147,14 @@ Approximately **four trades per month** across all instruments.
 | USD/CAD | ~44 | ~57% | — | — | +21 pips/trade | 4H |
 
 *GBP/JPY pip value ≈ $0.70/pip at 0.1 lot. All figures are pre-cost midpoint
-backtests and now reflect the v1.7.0 hold cap.*
+backtests and reflect the v1.7.0 24h hold cap.*
 
 > **Removed (v1.7.0):** USD/JPY previously showed "85% win / +164 pips/trade" here.
 > That was an artifact of the old backtester holding trades indefinitely — winning
 > trades held a median 2.4 days. Under a realistic 1-day hold cap the edge collapses
 > to ~40% win / +47 pips, and on 4H pivots USD/JPY loses outright. It (and the
-> near-inactive EUR/JPY) were removed. See
-> [[projects/forex/decisions/0002-remove-usdjpy-eurjpy-holding-time-artifact|ADR 0002]].
+> near-inactive EUR/JPY) were removed. See the v1.7.0 entry in the
+> [changelog](forex-trader/CHANGELOG.md).
 
 ### Expected annual P&L by position size
 
@@ -145,20 +168,9 @@ Target return is approximately **12% per year** at current parameters.
 
 > GBP/JPY pip values are approximate (depend on live USD/JPY rate).
 
-### Scaling milestones
-
-| Stage | Trigger | Action |
-|---|---|---|
-| Demo validation | 20+ live trades, positive expectancy confirmed | Move to live account at 0.1 lot |
-| Scale to 0.5 lot | 20+ live trades on live account | Increase `*_units` in add-on config |
-| Scale to 1.0 lot | Consistent profitability over 6+ months | Increase `*_units` further |
-
-At ~20 trades/year, allow **12 months** of live trading before drawing
-conclusions about strategy performance.
-
 ### Important caveats
 
-- Backtest sample sizes are small (8–12 trades per instrument)
+- Backtest sample sizes are small (8–12 trades per instrument). At roughly four trades a month, it takes many months of live trading before results mean anything — size up only once live results are statistically convincing, not on account balance alone
 - No spread or commission costs are modelled
 - Past backtest performance does not guarantee future results
 - The strategy is a mean-reversion system — it will underperform during
@@ -168,4 +180,4 @@ conclusions about strategy performance.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for full version history.
+Full version history: [Forex Trader](forex-trader/CHANGELOG.md) · [Forex Pairs](forex-pairs/CHANGELOG.md).
