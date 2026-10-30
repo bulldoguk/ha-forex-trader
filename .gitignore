@@ -4,3 +4,7 @@ __pycache__/
 
 # Editor / backup cruft
 *.bak
+
+# Vault notes and macOS SMB metadata never go public (HA-9)
+CLAUDE.md
+._*
