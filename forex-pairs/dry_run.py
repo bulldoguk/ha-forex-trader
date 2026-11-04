@@ -10,7 +10,6 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'trader'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'donchian_backtester'))
 import numpy as np
-import pandas as pd
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 

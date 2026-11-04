@@ -4,7 +4,7 @@ through subsequent M15 candles until both legs are closed.
 """
 
 import pandas as pd
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 from signal_detector import Signal
 from config import MAX_HOLD_BARS

@@ -130,7 +130,7 @@ def main():
             print(f"  Overall expectancy: {closed['pnl_points'].mean():+.5f} pts/trade")
 
         combined.to_csv('backtest_results.csv', index=False)
-        print(f"\n  Full results saved: backtest_results.csv")
+        print("\n  Full results saved: backtest_results.csv")
 
 
 if __name__ == '__main__':

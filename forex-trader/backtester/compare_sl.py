@@ -146,7 +146,7 @@ def print_side_by_side(pivot_st: dict, tight_st: dict, buffer_pips: int):
             rr = abs(aw / al)
             print(f"  {label} R:R ratio: {rr:.2f}:1")
 
-    print(f"\n  Outcomes:")
+    print("\n  Outcomes:")
     all_keys = set(pivot_st.get('outcomes', {}).keys()) | set(tight_st.get('outcomes', {}).keys())
     for k in sorted(all_keys):
         pv = pivot_st.get('outcomes', {}).get(k, 0)

@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 import oanda_client
 import notifier
 import logger
-import state as _state
 import config
 import scanner
 

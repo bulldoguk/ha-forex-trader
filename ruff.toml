@@ -1,0 +1,6 @@
+# SW-79: lint for real errors (pyflakes plus syntax errors), pinned here so a global
+# ruff config never changes what CI checks. Style rules are left off on purpose.
+target-version = "py311"
+
+[lint]
+select = ["E9", "F"]

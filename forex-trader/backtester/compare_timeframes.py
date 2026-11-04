@@ -94,7 +94,7 @@ def print_comparison(label: str, df_f: pd.DataFrame, df_all: pd.DataFrame,
     print(f"  {'Avg loss':28} {alf:>10}  {al_all:>10}")
 
     if not closed_f.empty:
-        print(f"\n  Range buckets (filtered):")
+        print("\n  Range buckets (filtered):")
         for lbl, grp in reporter._range_buckets(closed_f):
             wr = (grp['pnl_points'] > 0).mean() * 100 if not grp.empty else float('nan')
             print(f"    {lbl:<24} n={len(grp):>3}  win={wr:.0f}%  "
@@ -107,18 +107,18 @@ def main():
 
     # Fetch H4 once — shared by both timeframes
     oanda_instr = oanda_fetcher.OANDA_INSTRUMENTS[INSTRUMENT]
-    print(f"  Fetching H4 pivots...", end=' ', flush=True)
+    print("  Fetching H4 pivots...", end=' ', flush=True)
     raw_h4 = oanda_fetcher._fetch_candles(oanda_instr, 'H4', DAYS)
     h4_df  = oanda_fetcher._to_dataframe(raw_h4, shift=True)
     print(f"{len(h4_df)} candles")
 
     # M15
-    print(f"\n  Running M15...")
+    print("\n  Running M15...")
     df_f15, df_all15, raw15, filt15 = run_tf(INSTRUMENT, 'M15', M15_FILTERS, h4_df, DAYS)
     print_comparison('M15 (current)', df_f15, df_all15, raw15, filt15)
 
     # M1
-    print(f"\n  Running M1 (this may take a moment — more candles to fetch)...")
+    print("\n  Running M1 (this may take a moment — more candles to fetch)...")
     df_f1, df_all1, raw1, filt1 = run_tf(INSTRUMENT, 'M1', M1_FILTERS, h4_df, DAYS)
     print_comparison('M1 (proposed)', df_f1, df_all1, raw1, filt1)
 
@@ -130,8 +130,7 @@ def main():
 
     def fmt(df):
         c = df[df['outcome'] != 'incomplete'] if not df.empty and 'outcome' in df.columns else pd.DataFrame()
-        n  = f"{len(c):>10}"
-        wr = f"{(c['pnl_points']>0).mean()*100:.0f}%":>10 if not c.empty else '—'
+        wr = f"{(c['pnl_points']>0).mean()*100:.0f}%" if not c.empty else '—'
         ex = f"{c['pnl_points'].mean():+.5f}" if not c.empty else '—'
         return f"{len(c):>10}", f"{wr:>10}", f"{ex:>10}"
 

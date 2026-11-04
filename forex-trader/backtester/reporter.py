@@ -49,11 +49,11 @@ def print_report(df: pd.DataFrame, instrument: str):
     print(f"  Avg loss:      {avg_loss:+.5f} pts")
     print(f"  Expectancy:    {expectancy:+.5f} pts/trade")
     print(f"  Max drawdown:  {drawdown:.5f} pts")
-    print(f"\n  Outcomes:")
+    print("\n  Outcomes:")
     for outcome, count in closed['outcome'].value_counts().items():
         print(f"    {outcome:<15} {count:>4}  ({count/total*100:.1f}%)")
 
-    print(f"\n  Entry range analysis (R8/S0 → P4 distance):")
+    print("\n  Entry range analysis (R8/S0 → P4 distance):")
     for label, grp in _range_buckets(closed):
         wr = (grp['pnl_points'] > 0).mean() * 100
         n  = len(grp)
