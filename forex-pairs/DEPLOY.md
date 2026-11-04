@@ -28,7 +28,7 @@ The repo is already added (for the MR bot), so the new add-on just appears.
 
 | Option | Value |
 |---|---|
-| `oanda_token`, `oanda_account_id` | **same as the MR bot** (101-001-39193548-001) |
+| `oanda_token`, `oanda_account_id` | **same as the MR bot** (your OANDA account ID) |
 | `oanda_env` | `practice` |
 | `gmail_from`, `gmail_app_password`, `notify_email` | same as MR bot |
 | `mqtt_host/port/user/password` | same as MR bot |

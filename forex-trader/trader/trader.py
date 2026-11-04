@@ -17,7 +17,7 @@ Usage:
   python3 trader.py --reset   # clear all state (use after manual intervention)
 """
 
-import sys, os, time, traceback, warnings
+import sys, time, traceback, warnings
 from datetime import datetime, timezone, timedelta
 
 warnings.filterwarnings('ignore', message='urllib3 v2 only supports OpenSSL')

@@ -20,7 +20,7 @@ import oanda_fetcher
 import pivot_calculator
 import signal_detector
 import protection_simulator as psim
-from config import FILTER_CFG_OVERRIDES, FILTER_CFG
+from config import FILTER_CFG_OVERRIDES
 
 LIVE_PAIRS = ['GBPUSD', 'EURUSD', 'GBPJPY', 'USDJPY', 'EURJPY', 'USDCAD']
 _PIVOT_TF_OVERRIDES = {'USDJPY': 'daily'}

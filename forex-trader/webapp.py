@@ -5,7 +5,7 @@ Shows live instrument state, account summary, and trade history.
 
 import sys, os, json, time
 from datetime import datetime, timezone
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, render_template_string
 
 sys.path.insert(0, '/app/backtester')
 sys.path.insert(0, '/app/trader')

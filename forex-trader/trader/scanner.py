@@ -8,7 +8,6 @@ Entry rule:
 """
 
 import sys, os
-import pandas as pd
 
 import oanda_client
 import config

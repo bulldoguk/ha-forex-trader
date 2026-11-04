@@ -129,10 +129,9 @@ def main():
         locked = [((s.entry_price - s.sl_after_tp1) if s.direction == 'short'
                    else (s.sl_after_tp1 - s.entry_price)) / pip for s in sigs]
         pooled_premise += locked
-        ls_all = pd.Series(locked)
         ls = pd.Series(locked)
         bad = (ls <= 0).sum()
-        print(f"\n  PREMISE — profit locked by sl_after_tp1 (pips vs entry):")
+        print("\n  PREMISE — profit locked by sl_after_tp1 (pips vs entry):")
         print(f"    min {ls.min():+.1f}   median {ls.median():+.1f}   "
               f"max {ls.max():+.1f}")
         print(f"    setups where the trailed stop is NOT in profit: "
@@ -157,7 +156,7 @@ def main():
         live = runs['flat:96']
         free = runs['none']
         bound = [r for r in live if r.capped]
-        print(f"\n  DIAGNOSTIC — the live 24h cap:")
+        print("\n  DIAGNOSTIC — the live 24h cap:")
         print(f"    binds on {len(bound)} of {len(live)} trades "
               f"({100*len(bound)/max(len(live),1):.0f}%)")
         if bound:
@@ -172,7 +171,7 @@ def main():
                   f"total {d.sum():+.1f}  (best {d.max():+.1f}, worst {d.min():+.1f})")
 
         # ── 2. Policy comparison ────────────────────────────────────────────
-        print(f"\n  POLICY COMPARISON")
+        print("\n  POLICY COMPARISON")
         print(f"    {'policy':<34}{'n':>5}{'win%':>7}{'exp(pips)':>11}"
               f"{'total':>10}{'maxDD':>10}{'capped%':>9}")
         for pol, label in POLICIES:
@@ -191,7 +190,7 @@ def main():
         # ── 3. Does the range-scaled idea track reality? ─────────────────────
         wide = [r for r in live if abs(r.entry_range) / pip > 100]
         narrow = [r for r in live if abs(r.entry_range) / pip <= 100]
-        print(f"\n  CAP INCIDENCE BY SETUP WIDTH (live 24h policy)")
+        print("\n  CAP INCIDENCE BY SETUP WIDTH (live 24h policy)")
         for label, grp in (('entry range > 100 pips', wide),
                            ('entry range <= 100 pips', narrow)):
             if grp:
@@ -225,9 +224,9 @@ def main():
             mark = '  *' if pol == 'flat:96' else ''
             print(f"  {label:<34}{s['n']:>5}{s['win']:>6.1f}%{s['exp']:>11.2f}"
                   f"{s['total']:>10.0f}{s['dd']:>10.1f}{d:>+9.2f}{t:>+11.2f}{mark}")
-        print(f"  (paired t vs the live 24h policy; |t| > 2 ~ significant at 5%)")
+        print("  (paired t vs the live 24h policy; |t| > 2 ~ significant at 5%)")
 
-        print(f"\n  WIDE SETUPS ONLY (entry range > 100 pips)")
+        print("\n  WIDE SETUPS ONLY (entry range > 100 pips)")
         bw = _stats(pooled_wide['flat:96'])
         if bw:
             print(f"  {'policy':<34}{'n':>5}{'win%':>7}{'exp(pips)':>11}"

@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
-from config import LOOKBACK_DAYS, PIVOT_TF, SIGNAL_TF
+from config import LOOKBACK_DAYS
 
 
 def fetch(ticker: str) -> tuple[pd.DataFrame, pd.DataFrame]:

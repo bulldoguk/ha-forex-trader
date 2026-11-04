@@ -161,7 +161,7 @@ def detect(df: pd.DataFrame, filter_cfg: dict = None) -> list[Signal]:
         all_failed = [f for s in signals for f in s.filters_failed]
         if all_failed:
             counts = Counter(all_failed)
-            print(f"  Filter rejections: " +
+            print("  Filter rejections: " +
                   ", ".join(f"{k}={v}" for k, v in counts.items()) +
                   f" (of {len(signals)} raw signals)")
 
