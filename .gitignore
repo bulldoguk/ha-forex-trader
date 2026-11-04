@@ -8,3 +8,10 @@ __pycache__/
 # Vault notes and macOS SMB metadata never go public (HA-9)
 CLAUDE.md
 ._*
+
+# Local dev environment
+.venv/
+.pytest_cache/
+
+# Local credentials never go in git
+.env
