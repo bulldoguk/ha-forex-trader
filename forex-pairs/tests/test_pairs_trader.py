@@ -1,9 +1,6 @@
 """Entering, exiting and reconciling the single EUR/GBP position."""
 import json
 import os
-import subprocess
-import sys
-from pathlib import Path
 
 import config
 import logger
@@ -11,6 +8,7 @@ import oanda_client as oa
 import pairs_trader as pt
 import pytest
 import state as state_mod
+from conftest import config_in_subprocess
 from test_strategy import closes_with_z
 
 
@@ -132,15 +130,11 @@ def test_margin_check_refuses_when_unknown(monkeypatch):
     ("LIVE", "https://api-fxpractice.oanda.com"),
     ("live", "https://api-fxtrade.oanda.com"),
 ])
-def test_only_an_explicit_live_setting_reaches_the_live_api(env, url):
-    trader_dir = Path(__file__).resolve().parents[1] / "trader"
-    e = {k: v for k, v in os.environ.items() if k != "OANDA_ENV"}
-    if env is not None:
-        e["OANDA_ENV"] = env
-    out = subprocess.run([sys.executable, "-c", "import config; print(config.OANDA_BASE_URL)"],
-                         cwd=trader_dir, env=e, capture_output=True, text=True, check=True)
-    assert out.stdout.strip() == url
+def test_only_an_explicit_live_setting_reaches_the_live_api(tmp_path, env, url):
+    over = {} if env is None else {"OANDA_ENV": env}
+    assert config_in_subprocess(tmp_path, "OANDA_BASE_URL", over, drop=("OANDA_ENV",)) == url
 
 
-def test_dry_run_is_off_unless_asked_for():
-    assert config.DRY_RUN is False
+def test_dry_run_is_off_unless_asked_for(tmp_path):
+    assert config_in_subprocess(tmp_path, "DRY_RUN", drop=("PAIRS_DRY_RUN",)) == "False"
+    assert config_in_subprocess(tmp_path, "DRY_RUN", {"PAIRS_DRY_RUN": "true"}) == "True"

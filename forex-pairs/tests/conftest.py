@@ -32,6 +32,24 @@ import state as state_mod  # noqa: E402
 assert config.OANDA_BASE_URL == "https://api-fxpractice.oanda.com"
 
 
+def config_in_subprocess(tmp_path, expr, env_overrides=None, drop=()):
+    """Evaluate `config.<expr>` in a fresh process, as the add-on would see it.
+
+    A no-op `dotenv` stub is put first on the path, so a developer's local .env
+    can't leak a value (e.g. OANDA_ENV=live) into a test of the defaults.
+    """
+    import subprocess
+    stub = tmp_path / "stub"
+    stub.mkdir(exist_ok=True)
+    (stub / "dotenv.py").write_text("def load_dotenv(*a, **k):\n    return False\n")
+    env = {k: v for k, v in os.environ.items() if k not in drop}
+    env.update(env_overrides or {})
+    env["PYTHONPATH"] = str(stub)
+    out = subprocess.run([sys.executable, "-c", f"import config; print(config.{expr})"],
+                         cwd=ROOT / "trader", env=env, capture_output=True, text=True, check=True)
+    return out.stdout.strip()
+
+
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "LOG_DIR", str(tmp_path))

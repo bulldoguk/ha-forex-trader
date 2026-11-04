@@ -1,13 +1,9 @@
 """The broker client: what goes on the wire, margin checks, retries and health."""
-import os
-import subprocess
-import sys
-from pathlib import Path
-
 import config
 import oanda_client as oa
 import pytest
 import requests
+from conftest import config_in_subprocess
 
 
 @pytest.fixture
@@ -44,6 +40,7 @@ def test_partial_close_sends_units_and_full_close_sends_none(posted):
 
 
 def test_margin_check_applies_safety_factor(monkeypatch):
+    monkeypatch.setattr(config, "MARGIN_SAFETY_FACTOR", 1.25)
     monkeypatch.setattr(oa, "get_margin_rate", lambda i: 0.02)
     monkeypatch.setattr(oa, "get_account_summary", lambda: {"marginAvailable": "250"})
     # 10,000 USD_CAD at 2% = $200; x1.25 = $250 → exactly affordable
@@ -115,6 +112,7 @@ def test_transport_errors_exhaust_retries_then_raise(wire):
     wire += [requests.exceptions.ConnectionError()] * 4
     with pytest.raises(requests.exceptions.ConnectionError):
         oa._get("/x")
+    assert wire == []                      # all four attempts were made
     assert oa.get_health()["consecutive_failures"] == 1
 
 
@@ -131,11 +129,6 @@ def test_400_is_not_retried(wire):
     ("LIVE", "https://api-fxpractice.oanda.com"),   # only exactly "live" goes live
     ("live", "https://api-fxtrade.oanda.com"),
 ])
-def test_only_an_explicit_live_setting_reaches_the_live_api(env, url):
-    trader_dir = Path(__file__).resolve().parents[1] / "trader"
-    e = {k: v for k, v in os.environ.items() if k != "OANDA_ENV"}
-    if env is not None:
-        e["OANDA_ENV"] = env
-    out = subprocess.run([sys.executable, "-c", "import config; print(config.OANDA_BASE_URL)"],
-                         cwd=trader_dir, env=e, capture_output=True, text=True, check=True)
-    assert out.stdout.strip() == url
+def test_only_an_explicit_live_setting_reaches_the_live_api(tmp_path, env, url):
+    over = {} if env is None else {"OANDA_ENV": env}
+    assert config_in_subprocess(tmp_path, "OANDA_BASE_URL", over, drop=("OANDA_ENV",)) == url

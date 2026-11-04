@@ -12,3 +12,6 @@ CLAUDE.md
 # Local dev environment
 .venv/
 .pytest_cache/
+
+# Local credentials never go in git
+.env
