@@ -194,3 +194,7 @@ This software is provided **for entertainment and educational purposes only**. I
 - The strategies, backtests and results in this repository describe the past. They don't predict future performance, and live results can differ a lot from backtests.
 - The software is provided "as is", without warranty of any kind. It may contain bugs that place, hold or close trades in ways you didn't intend. You are solely responsible for any trades it makes on your account and for any losses.
 - Use a practice (demo) account unless you fully understand the code, the strategy and the risks, and accept them.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). Its "as is", no-warranty terms apply to all the code here, alongside the disclaimer above.
