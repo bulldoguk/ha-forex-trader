@@ -1,0 +1,24 @@
+# Dev and test environment only. The add-on images install from each add-on's
+# requirements.txt; nothing here ships.
+[project]
+name = "ha-forex-trader-dev"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "requests",
+  "pandas",
+  "numpy",
+  "python-dotenv",
+  "paho-mqtt",
+  "flask",
+]
+
+[tool.pytest.ini_options]
+# Each add-on has its own flat modules (config, state, logger...) with the same
+# names, so the two suites must run in separate processes:
+#   uv run pytest forex-trader/tests && uv run pytest forex-pairs/tests
+addopts = "-q"

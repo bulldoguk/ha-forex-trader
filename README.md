@@ -186,6 +186,19 @@ Target return is approximately **12% per year** at current parameters.
 
 Full version history: [Forex Trader](forex-trader/CHANGELOG.md) · [Forex Pairs](forex-pairs/CHANGELOG.md).
 
+## Development
+
+Tests live beside each add-on and run against a fake broker: nothing touches OANDA, Gmail or MQTT. The two add-ons share module names, so run each suite on its own:
+
+```sh
+uv sync --python 3.11
+uv run pytest forex-trader/tests
+uv run pytest forex-pairs/tests
+uvx ruff check .
+```
+
+CI runs all three on every pull request, and `main` only accepts merges that pass.
+
 ## Disclaimer
 
 This software is provided **for entertainment and educational purposes only**. It is not financial, investment or trading advice, and the author is not a licensed financial adviser.
