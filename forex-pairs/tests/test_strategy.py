@@ -81,3 +81,11 @@ def test_never_enters_while_already_in_a_position():
 def test_validated_parameters_are_unchanged():
     # Plateau-stable values from the stress test; changing them needs a new backtest.
     assert (ps.WINDOW, ps.ENTRY_Z, ps.EXIT_Z, ps.STOP_Z) == (60, 2.0, 0.5, 4.0)
+
+
+def test_code_version_matches_the_add_on_manifest():
+    import re
+    from pathlib import Path
+    import pairs_trader
+    manifest = (Path(__file__).resolve().parents[1] / "config.yaml").read_text()
+    assert re.search(r'^version: "([^"]+)"', manifest, re.M).group(1) == pairs_trader.VERSION
