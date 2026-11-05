@@ -47,3 +47,11 @@ def test_every_instrument_trades_a_half_and_half_split():
     for key, cfg in config.INSTRUMENTS.items():
         assert cfg["units_partial"] * 2 == cfg["units_total"], key
         assert cfg["oanda"].replace("_", "") == key
+
+
+def test_code_version_matches_the_add_on_manifest():
+    import re
+    from pathlib import Path
+    import monitor
+    manifest = (Path(__file__).resolve().parents[1] / "config.yaml").read_text()
+    assert re.search(r'^version: "([^"]+)"', manifest, re.M).group(1) == monitor.VERSION

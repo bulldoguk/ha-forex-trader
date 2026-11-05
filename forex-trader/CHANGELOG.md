@@ -3,6 +3,12 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.11.1 (2026-11-04)
+
+### Changed
+- **Entertainment-only disclaimer.** The add-on store description now starts with "Entertainment purposes only, not financial advice.", and the repository README carries the full disclaimer. The repository is now MIT-licensed.
+- Housekeeping only, no change to trading behaviour: unused imports removed (found by the new ruff lint), and the backtester's `compare_timeframes.py` syntax error fixed. The repository now has a test suite that runs on every pull request.
+
 ## v1.11.0 (2026-09-03)
 
 ### Fixed

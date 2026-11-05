@@ -1,0 +1,63 @@
+# CodeRabbit review config, matching cookoffchamps and shape-note-trainer. Quiet on purpose: findings only.
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+early_access: false
+tone_instructions: "Terse and specific. Only flag real problems; no praise, no filler."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: false
+  poem: false
+  review_status: false
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  auto_review:
+    enabled: true
+    drafts: true
+    base_branches:
+      - main
+  path_filters:
+    - "!**/*.csv"
+  path_instructions:
+    - path: "forex-*/trader/**/*.py"
+      instructions: |
+        This code places and manages live orders on an OANDA account. Flag
+        anything that could open a position twice, leave one without a stop
+        loss, size a position from an unchecked value, or swallow an order or
+        API error silently. Flag a change to practice/live selection that could
+        default to live.
+    - path: "forex-*/entrypoint.py"
+      instructions: |
+        Reads add-on options (including the OANDA token, Gmail app password and
+        MQTT password). Flag any of those being logged, printed or written to a file.
+    - path: "forex-*/config.yaml"
+      instructions: |
+        Add-on manifest. The description must keep its "Entertainment purposes
+        only, not financial advice." prefix. Flag a default credential, or a
+        default oanda_env of live.
+    - path: "**/*.md"
+      instructions: |
+        Public docs. Flag an OANDA account ID, token, balance or any personal
+        detail, and flag removal or softening of the README disclaimer.
+    - path: ".github/**"
+      instructions: "Flag any step that exposes secrets to pull-request code, or an action not pinned to a commit SHA."
+  tools:
+    gitleaks:
+      enabled: true
+    ruff:
+      enabled: true
+    github-checks:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false

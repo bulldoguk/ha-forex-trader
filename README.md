@@ -1,5 +1,9 @@
 # Forex Trader — Home Assistant Add-ons
 
+> [!CAUTION]
+> **For entertainment purposes only. This is not financial advice.**
+> This is a personal hobby project, shared as-is. Forex trading is high-risk, and with leverage you can lose more than you put in. Backtest results are not a prediction of future returns. Nothing here is a recommendation to buy or sell anything. If you run it, start on an OANDA practice account, and only ever trade money you can afford to lose. See the [full disclaimer](#disclaimer).
+
 Automated forex trading against an OANDA account, packaged as Home Assistant add-ons. This repository holds two:
 
 | Add-on | Strategy | Instruments |
@@ -194,3 +198,16 @@ uvx ruff check .
 ```
 
 CI runs all three on every pull request, and `main` only accepts merges that pass.
+
+## Disclaimer
+
+This software is provided **for entertainment and educational purposes only**. It is not financial, investment or trading advice, and the author is not a licensed financial adviser.
+
+- Trading foreign exchange on margin carries a high level of risk and may not be suitable for everyone. You can lose some or all of your money, and with leverage, more than your deposit.
+- The strategies, backtests and results in this repository describe the past. They don't predict future performance, and live results can differ a lot from backtests.
+- The software is provided "as is", without warranty of any kind. It may contain bugs that place, hold or close trades in ways you didn't intend. You are solely responsible for any trades it makes on your account and for any losses.
+- Use a practice (demo) account unless you fully understand the code, the strategy and the risks, and accept them.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). Its "as is", no-warranty terms apply to all the code here, alongside the disclaimer above.

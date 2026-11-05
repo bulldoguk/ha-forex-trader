@@ -1,7 +1,7 @@
 name: "Forex Trader"
-version: "1.11.0"
+version: "1.11.1"
 slug: "forex_trader"
-description: "Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/CAD"
+description: "Entertainment purposes only, not financial advice. Automated pivot mean-reversion trading — GBP/USD, EUR/USD, GBP/JPY, USD/CAD"
 url: "https://github.com/bulldoguk/ha-forex-trader"
 image: "ghcr.io/bulldoguk/{arch}-addon-forex_trader"
 arch:

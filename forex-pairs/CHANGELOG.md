@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 (2026-11-04)
+
+### Changed
+- **Entertainment-only disclaimer.** The add-on store description now starts with "Entertainment purposes only, not financial advice.", and the repository README carries the full disclaimer. The repository is now MIT-licensed.
+- Housekeeping only, no change to trading behaviour: an unused import removed, and a test suite that runs on every pull request.
+
 ## 0.3.0 (2026-09-03)
 
 ### Fixed
