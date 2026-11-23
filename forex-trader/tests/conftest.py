@@ -89,6 +89,8 @@ class FakeBroker:
         self.margin_ok = True
         self.fail = set()          # method names that should raise
         self.fill = {"pl": "10.48", "price": None}
+        self.not_found = set()     # trade ids whose lookup answers HTTP 404
+        self.closes = {}           # trade id -> find_trade_close() result
 
     def _rec(self, name, *args):
         self.calls.append((name, *args))
@@ -97,7 +99,15 @@ class FakeBroker:
 
     def get_trade(self, trade_id):
         self._rec("get_trade", trade_id)
+        if trade_id in self.not_found:
+            resp = requests.Response()
+            resp.status_code = 404
+            raise requests.exceptions.HTTPError("404 Client Error: Not Found", response=resp)
         return self.trades[trade_id]
+
+    def find_trade_close(self, trade_id):
+        self._rec("find_trade_close", trade_id)
+        return self.closes.get(trade_id)
 
     def get_order(self, order_id):
         self._rec("get_order", order_id)
@@ -149,7 +159,7 @@ class FakeBroker:
 @pytest.fixture
 def broker(monkeypatch):
     b = FakeBroker()
-    for name in ("get_trade", "get_order", "get_current_price", "get_open_trades",
+    for name in ("get_trade", "find_trade_close", "get_order", "get_current_price", "get_open_trades",
                  "get_pending_orders", "check_margin", "place_limit_order",
                  "cancel_order", "partial_close", "modify_sl", "close_trade"):
         monkeypatch.setattr(oanda_client, name, getattr(b, name))

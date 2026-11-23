@@ -145,3 +145,61 @@ def test_lookup_failure_does_nothing(broker, filled_long):
     event, st = monitor.check_and_act(filled_long, "EURUSD")
     assert event == "error" and st is filled_long
     assert broker.names() == ["get_trade"]
+
+
+# ── 404 on the trade lookup (trade 180, 2026-08-19) ───────────────────────────
+
+def test_404_settles_a_trade_closed_at_the_broker(broker, filled_long):
+    broker.not_found.add("77")
+    broker.closes["77"] = {"price": 1.0970, "pl": "-15.00", "time": "t"}
+    event, st = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "closed" and st is None
+    (rec,) = journal_closes()
+    assert rec["close_reason"] == "CLOSED"
+    assert rec["total_pnl_pips"] == pytest.approx(-30.0)
+    assert broker.names() == ["get_trade", "get_open_trades", "find_trade_close"]
+
+
+def test_404_after_tp1_uses_the_runner_fill_directly(broker, filled_long):
+    filled_long.update(tp1_hit=True, leg1_pips=30.0, tp1_price_actual=1.1030,
+                       sl_current=1.1005)
+    broker.not_found.add("77")
+    broker.closes["77"] = {"price": 1.1005, "pl": "2.50", "time": "t"}
+    event, _ = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "closed"
+    (rec,) = journal_closes()
+    assert rec["leg2_pnl_pips"] == pytest.approx(5.0)   # entry 1.1000 → 1.1005
+
+
+def test_404_but_still_open_keeps_retrying(broker, filled_long):
+    broker.not_found.add("77")
+    broker.open_trades = [{"id": "77"}]
+    event, st = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "error" and st is filled_long
+    assert journal_closes() == []
+    assert "find_trade_close" not in broker.names()
+
+
+def test_404_when_open_trades_check_fails_keeps_retrying(broker, filled_long):
+    broker.not_found.add("77")
+    broker.fail.add("get_open_trades")
+    event, st = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "error" and st is filled_long
+    assert journal_closes() == []
+
+
+def test_404_without_a_closing_fill_journals_at_the_stop_and_alerts(broker, filled_long, isolated):
+    broker.not_found.add("77")
+    event, _ = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "closed"
+    (rec,) = journal_closes()
+    assert rec["close_reason"] == "CLOSED_UNVERIFIED"
+    assert rec["close_price"] == pytest.approx(1.0970)
+    assert any("not found" in subject for subject in isolated)
+
+
+def test_non_404_errors_are_still_just_retried(broker, filled_long):
+    broker.fail.add("get_trade")            # RuntimeError, like a 401/5xx/transport failure
+    event, st = monitor.check_and_act(filled_long, "EURUSD")
+    assert event == "error" and st is filled_long
+    assert broker.names() == ["get_trade"]

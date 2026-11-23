@@ -3,6 +3,13 @@
 Referenced from [[projects/forex/CLAUDE|CLAUDE.md]] (known bugs), [[projects/forex/docs/live_trading_log|live_trading_log.md]]
 (v1.6.9 bug), and [[projects/forex/ha-addon/README|ha-addon/README.md]].
 
+## v1.11.2 (2026-11-23)
+
+### Fixed
+- **A trade the broker has closed no longer blocks the bot for days when OANDA answers 404.** Trade 180 (USD/CAD) stopped out at the broker on 2026-08-19, after which every lookup of it returned `404 Not Found`. The monitor logged 3,275 `monitor_error`s over about 2.5 days before the trade was journaled, and with `max_concurrent_positions: 1` it would have skipped every signal in that time. P&L was unaffected because the broker stop worked.
+
+  Now a 404 on the trade lookup, and only a 404, settles the trade: the monitor first confirms it isn't among the instrument's open trades, then takes the exit from the fill in the transaction history that closed it, journals the close and goes idle. If no closing fill can be found, it journals at the current stop as `CLOSED_UNVERIFIED` and sends an error e-mail so the figure can be checked. 401s, 5xx and connection errors are retried exactly as before; across the whole journal they never meant a closed trade.
+
 ## v1.11.1 (2026-11-04)
 
 ### Changed
