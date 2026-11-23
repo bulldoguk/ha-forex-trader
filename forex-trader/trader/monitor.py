@@ -4,7 +4,7 @@ Called every MONITOR_INTERVAL seconds by the daemon.
 Returns one of: 'tp1_hit', 'tp2_hit', 'sl_hit', 'open', 'error'
 """
 
-VERSION = "1.11.1"
+VERSION = "1.11.2"
 
 import traceback
 from datetime import datetime, timezone
@@ -38,6 +38,8 @@ def check_and_act(st: dict, instrument_key: str) -> tuple[str, dict]:
     try:
         trade = oanda_client.get_trade(st['trade_id'])
     except Exception as e:
+        if oanda_client.is_not_found(e):
+            return _handle_trade_not_found(st, instrument_key, str(e))
         logger.log_event('monitor_error', detail=str(e))
         return 'error', st
 
@@ -203,6 +205,56 @@ def _runner_close_price(st: dict, avg_close_price: float,
         return avg_close_price
     total = avg_close_price * (units_leg1 + units_leg2) - tp1_price * units_leg1
     return total / units_leg2
+
+
+def _handle_trade_not_found(st: dict, instrument_key: str,
+                            detail: str) -> tuple[str, dict]:
+    """The trade lookup 404'd: settle the trade as closed at the broker.
+
+    Trade 180 (USD/CAD, 2026-08-19) stopped out at the broker, then every lookup
+    of it returned 404. The daemon logged 3,275 monitor_errors over ~2.5 days and,
+    with max_concurrent_positions = 1, believed it held a position the whole time.
+
+    A 404 alone is not proof, so first confirm the trade is not among the
+    instrument's open trades; if it is, or that check fails, keep retrying as
+    before. Otherwise recover the real exit from the transaction history and
+    journal it. If even that fails, journal at the current stop (the broker-side
+    SL is what closes a trade we aren't watching) and e-mail so the figure can
+    be checked by hand. Either way the slot is freed.
+    """
+    oanda_instr = config.INSTRUMENTS[instrument_key]['oanda']
+    try:
+        open_ids = {str(t.get('id')) for t in
+                    oanda_client.get_open_trades(instrument=oanda_instr)}
+    except Exception as e:
+        logger.log_event('monitor_error', detail=f'{detail}; open-trades check failed: {e}')
+        return 'error', st
+    if str(st['trade_id']) in open_ids:
+        logger.log_event('monitor_error',
+                         detail=f'{detail}; trade still listed as open, retrying')
+        return 'error', st
+
+    try:
+        close = oanda_client.find_trade_close(st['trade_id'])
+    except Exception as e:
+        logger.log_event('trade_close_lookup_failed', instrument=instrument_key,
+                         trade_id=st['trade_id'], detail=str(e))
+        close = None
+
+    if close is not None:
+        logger.log_event('trade_not_found_settled', instrument=instrument_key,
+                         trade_id=st['trade_id'], price=close['price'],
+                         realized_pl=close['pl'], close_time=close['time'])
+        return _handle_close(st, close['price'], 'CLOSED', instrument_key)
+
+    fallback = st.get('sl_current') or st['entry_price']
+    logger.log_event('trade_not_found_unverified', instrument=instrument_key,
+                     trade_id=st['trade_id'], assumed_price=fallback)
+    notifier.error(f'Trade {st["trade_id"]} not found ({instrument_key})',
+                   f'OANDA returned 404 for trade {st["trade_id"]}, it is not open, '
+                   f'and no closing fill was found. Journaled at the stop '
+                   f'{fallback} as CLOSED_UNVERIFIED; check the real exit in OANDA.')
+    return _handle_close(st, fallback, 'CLOSED_UNVERIFIED', instrument_key)
 
 
 def _handle_close(st: dict, close_price: float, reason: str,

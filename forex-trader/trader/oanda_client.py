@@ -287,6 +287,42 @@ def get_trade(trade_id: str) -> dict:
     return _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/trades/{trade_id}')['trade']
 
 
+def is_not_found(exc: BaseException) -> bool:
+    """True if `exc` is an HTTP 404 from OANDA (and nothing else).
+
+    Only a 404 means "the broker has no such record". 401s, 5xx and transport
+    errors are transient and must keep being retried by the caller.
+    """
+    resp = getattr(exc, 'response', None)
+    return (isinstance(exc, requests.exceptions.HTTPError)
+            and resp is not None and resp.status_code == 404)
+
+
+def find_trade_close(trade_id: str) -> dict | None:
+    """The fill that finally closed `trade_id`, read from the transaction history.
+
+    Used when the trade lookup itself 404s (trade 180, 2026-08-19). An OANDA
+    trade id is the id of the fill that opened it, so every later transaction
+    is at or after it. Returns {'price', 'pl', 'time'} for the LAST fill listing
+    the trade in tradesClosed — after a TP1 partial (which appears under
+    tradeReduced instead) that is the runner's own exit. None if not found.
+    """
+    data = _get(f'/v3/accounts/{config.OANDA_ACCOUNT}/transactions/sinceid',
+                {'id': str(trade_id)})
+    for txn in reversed(data.get('transactions', [])):
+        if txn.get('type') != 'ORDER_FILL':
+            continue
+        for closed in txn.get('tradesClosed') or []:
+            if str(closed.get('tradeID')) == str(trade_id):
+                price = closed.get('price', txn.get('price'))
+                if price is None:
+                    return None
+                return {'price': float(price),
+                        'pl':    closed.get('realizedPL'),
+                        'time':  txn.get('time')}
+    return None
+
+
 def modify_sl(trade_id: str, sl_price: float) -> dict:
     return _put(
         f'/v3/accounts/{config.OANDA_ACCOUNT}/trades/{trade_id}/orders',

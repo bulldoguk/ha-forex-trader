@@ -132,3 +132,41 @@ def test_400_is_not_retried(wire):
 def test_only_an_explicit_live_setting_reaches_the_live_api(tmp_path, env, url):
     over = {} if env is None else {"OANDA_ENV": env}
     assert config_in_subprocess(tmp_path, "OANDA_BASE_URL", over, drop=("OANDA_ENV",)) == url
+
+
+# ── 404 handling (trade 180) ──────────────────────────────────────────────────
+
+def _http_error(status):
+    resp = requests.Response()
+    resp.status_code = status
+    return requests.exceptions.HTTPError(f"{status}", response=resp)
+
+
+def test_only_a_404_counts_as_not_found():
+    assert oa.is_not_found(_http_error(404))
+    assert not oa.is_not_found(_http_error(401))
+    assert not oa.is_not_found(_http_error(503))
+    assert not oa.is_not_found(requests.exceptions.ConnectionError("down"))
+    assert not oa.is_not_found(RuntimeError("other"))
+
+
+def test_find_trade_close_takes_the_last_fill_that_closed_the_trade(monkeypatch):
+    seen = []
+    txns = {"transactions": [
+        {"type": "ORDER_FILL", "id": "181", "price": "1.38873",
+         "tradeReduced": {"tradeID": "180", "price": "1.38873"}},          # TP1 partial
+        {"type": "STOP_LOSS_ORDER", "id": "182"},
+        {"type": "ORDER_FILL", "id": "183", "time": "2026-08-19T12:45:00Z",
+         "tradesClosed": [{"tradeID": "999", "price": "1.1"},
+                          {"tradeID": "180", "price": "1.38606", "realizedPL": "-8.04"}]},
+    ]}
+    monkeypatch.setattr(oa, "_get", lambda path, params=None: seen.append((path, params)) or txns)
+    assert oa.find_trade_close("180") == {"price": 1.38606, "pl": "-8.04",
+                                          "time": "2026-08-19T12:45:00Z"}
+    assert seen[0][0].endswith("/transactions/sinceid") and seen[0][1] == {"id": "180"}
+
+
+def test_find_trade_close_returns_none_when_no_fill_closed_it(monkeypatch):
+    monkeypatch.setattr(oa, "_get", lambda path, params=None: {"transactions": [
+        {"type": "ORDER_FILL", "tradesClosed": [{"tradeID": "999", "price": "1.1"}]}]})
+    assert oa.find_trade_close("180") is None
